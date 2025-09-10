@@ -85,7 +85,6 @@ def upload():
             item_name = request.form.get('item_name')
             quantity = int(request.form.get('quantity'))
             estimated_cost = int(request.form.get('estimated_cost'))
-            link = request.form.get('link')
             store = request.form.get('store')
             
             team = Team.query.filter_by(name=team_name).first()
@@ -95,7 +94,7 @@ def upload():
                     item_name=item_name,
                     quantity=quantity,
                     estimated_cost=estimated_cost,
-                    link=link,
+                    link='',  # 링크 필드 제거
                     store=store
                 )
                 db.session.add(purchase)
