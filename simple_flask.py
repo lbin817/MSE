@@ -36,8 +36,10 @@ class Team(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)
     leader_name = db.Column(db.String(100), nullable=True)
-    department_budget = db.Column(db.Integer, nullable=False)
-    student_budget = db.Column(db.Integer, nullable=False)
+    department_budget = db.Column(db.Integer, nullable=False)  # 현재 남은 예산
+    student_budget = db.Column(db.Integer, nullable=False)     # 현재 남은 예산
+    original_department_budget = db.Column(db.Integer, nullable=False)  # 원래 설정된 예산
+    original_student_budget = db.Column(db.Integer, nullable=False)     # 원래 설정된 예산
     
     def __repr__(self):
         return f'<Team {self.name}>'
@@ -203,6 +205,8 @@ def admin():
             if team:
                 team.department_budget = department_budget
                 team.student_budget = student_budget
+                team.original_department_budget = department_budget
+                team.original_student_budget = student_budget
                 db.session.commit()
                 flash(f'{team_name}의 예산이 업데이트되었습니다. (학과지원: {department_budget:,}원, 학생지원: {student_budget:,}원)', 'success')
                 return redirect(url_for('admin'))
@@ -224,9 +228,9 @@ def admin():
             'leader_name': team.leader_name,
             'department_budget': team.department_budget,
             'student_budget': team.student_budget,
-            'total_budget': team.department_budget + team.student_budget,
+            'total_budget': team.original_department_budget + team.original_student_budget,  # 원래 예산 사용
             'total_spent': total_spent,
-            'remaining': (team.department_budget + team.student_budget) - total_spent
+            'remaining': (team.original_department_budget + team.original_student_budget) - total_spent  # 원래 예산에서 사용액 차감
         })
     
     pending_purchases = Purchase.query.filter_by(is_approved=False).all()
@@ -324,33 +328,83 @@ def logout():
     flash('로그아웃되었습니다.', 'info')
     return redirect(url_for('index'))
 
-def init_db():
-    """데이터베이스 초기화 및 초기 데이터 설정"""
+def migrate_existing_data():
+    """기존 데이터에 새로운 필드 추가 (마이그레이션)"""
     with app.app_context():
+        try:
+            # 먼저 새로운 컬럼이 있는지 확인
+            with db.engine.connect() as conn:
+                result = conn.execute(db.text("PRAGMA table_info(team)"))
+                columns = [row[1] for row in result]
+            
+            # original_department_budget 컬럼이 없으면 추가
+            if 'original_department_budget' not in columns:
+                with db.engine.connect() as conn:
+                    conn.execute(db.text("ALTER TABLE team ADD COLUMN original_department_budget INTEGER DEFAULT 0"))
+                    conn.commit()
+                print("original_department_budget 컬럼을 추가했습니다.")
+            
+            # original_student_budget 컬럼이 없으면 추가
+            if 'original_student_budget' not in columns:
+                with db.engine.connect() as conn:
+                    conn.execute(db.text("ALTER TABLE team ADD COLUMN original_student_budget INTEGER DEFAULT 0"))
+                    conn.commit()
+                print("original_student_budget 컬럼을 추가했습니다.")
+            
+            # 기존 데이터에 원래 예산 값 설정
+            teams = Team.query.all()
+            for team in teams:
+                if team.original_department_budget == 0:
+                    team.original_department_budget = team.department_budget
+                if team.original_student_budget == 0:
+                    team.original_student_budget = team.student_budget
+            
+            db.session.commit()
+            print("기존 데이터 마이그레이션이 완료되었습니다.")
+            
+        except Exception as e:
+            print(f"마이그레이션 중 오류 발생: {e}")
+            # 오류 발생 시 데이터베이스 재생성
+            db.drop_all()
+            db.create_all()
+            print("데이터베이스를 재생성했습니다.")
+
+def init_db():
+    """데이터베이스 초기화 및 초기 데이터 설정 (데이터 보존)"""
+    with app.app_context():
+        # 테이블 생성 (기존 데이터 보존)
         db.create_all()
         
+        # 기존 데이터 마이그레이션
+        migrate_existing_data()
+        
+        # 초기 팀 데이터 (기존 팀이 없을 때만 생성)
         teams_data = [
-            {'name': '월요일 1조', 'department_budget': 600000, 'student_budget': 500000},
-            {'name': '월요일 2조', 'department_budget': 700000, 'student_budget': 500000},
-            {'name': '월요일 3조', 'department_budget': 600000, 'student_budget': 500000},
-            {'name': '월요일 4조', 'department_budget': 700000, 'student_budget': 500000},
-            {'name': '화요일 1조', 'department_budget': 600000, 'student_budget': 500000},
-            {'name': '화요일 2조', 'department_budget': 700000, 'student_budget': 500000},
-            {'name': '화요일 3조', 'department_budget': 600000, 'student_budget': 500000},
-            {'name': '화요일 4조', 'department_budget': 700000, 'student_budget': 500000},
-            {'name': '화요일 5조', 'department_budget': 600000, 'student_budget': 500000},
-            {'name': '화요일 6조', 'department_budget': 700000, 'student_budget': 500000},
-            {'name': '화요일 7조', 'department_budget': 600000, 'student_budget': 500000},
+            {'name': '월요일 1조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+            {'name': '월요일 2조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
+            {'name': '월요일 3조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+            {'name': '월요일 4조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
+            {'name': '화요일 1조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+            {'name': '화요일 2조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
+            {'name': '화요일 3조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+            {'name': '화요일 4조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
+            {'name': '화요일 5조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+            {'name': '화요일 6조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
+            {'name': '화요일 7조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
         ]
         
-        for team_data in teams_data:
-            existing_team = Team.query.filter_by(name=team_data['name']).first()
-            if not existing_team:
+        # 기존 팀이 없을 때만 새로 생성 (데이터 보존)
+        existing_teams = Team.query.count()
+        if existing_teams == 0:
+            for team_data in teams_data:
                 team = Team(**team_data)
                 db.session.add(team)
+            db.session.commit()
+            print("초기 팀 데이터가 생성되었습니다.")
+        else:
+            print(f"기존 {existing_teams}개 팀 데이터를 보존했습니다.")
         
-        db.session.commit()
-        print("데이터베이스가 초기화되었습니다.")
+        print("데이터베이스 초기화가 완료되었습니다.")
 
 if __name__ == '__main__':
     init_db()
