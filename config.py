@@ -4,6 +4,7 @@ IP 제한 및 보안 설정
 """
 
 import ipaddress
+import os
 
 # 허용된 IP 대역 설정
 # 모든 IP에서 접속 허용
@@ -13,15 +14,15 @@ ALLOWED_IPS = [
     ipaddress.ip_network('::/0'),                # 모든 IPv6 주소
 ]
 
-# 관리자 계정 정보
-ADMIN_USERNAME = 'MSE3105'
-ADMIN_PASSWORD = 'KHU'
+# 관리자 계정 정보 (환경 변수에서 가져오기)
+ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'MSE3105')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'KHU')
 
 # 데이터베이스 설정
-DATABASE_URI = 'sqlite:///budget_management.db'
+DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///budget_management.db')
 
-# 보안 설정
-SECRET_KEY = 'your-secret-key-change-this-in-production'
+# 보안 설정 (환경 변수에서 가져오기)
+SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key-change-this-in-production')
 
 # SSL 설정
 SSL_CERT_PATH = 'cert.pem'

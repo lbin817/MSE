@@ -52,7 +52,10 @@ MSE/
 5. **Start Command**: `python simple_flask.py`
 6. **Plan**: Free (무료 플랜)
 
-#### 환경 변수 설정 (선택사항):
+#### 환경 변수 설정 (권장):
+- `SECRET_KEY`: `your-very-secure-secret-key-here` (보안을 위해 강력한 키 사용)
+- `ADMIN_USERNAME`: `MSE3105` (기본값, 변경 가능)
+- `ADMIN_PASSWORD`: `KHU` (기본값, 보안을 위해 변경 권장)
 - `FLASK_ENV`: `production`
 - `FLASK_DEBUG`: `false`
 
