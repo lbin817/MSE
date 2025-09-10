@@ -297,6 +297,27 @@ def cancel_approval(purchase_id):
     flash('구매 승인이 취소되었습니다.', 'success')
     return redirect(url_for('admin'))
 
+@app.route('/delete_purchase/<int:purchase_id>')
+def delete_purchase(purchase_id):
+    if 'admin_logged_in' not in session:
+        return redirect(url_for('admin'))
+    
+    purchase = Purchase.query.get_or_404(purchase_id)
+    
+    # 승인된 구매내역인 경우 예산 복구
+    if purchase.is_approved:
+        team = purchase.team
+        if purchase.budget_type == 'department':
+            team.department_budget += purchase.estimated_cost
+        elif purchase.budget_type == 'student':
+            team.student_budget += purchase.estimated_cost
+    
+    # 구매내역 삭제
+    db.session.delete(purchase)
+    db.session.commit()
+    flash('구매내역이 삭제되었습니다.', 'success')
+    return redirect(url_for('admin'))
+
 @app.route('/logout')
 def logout():
     session.pop('admin_logged_in', None)

@@ -285,18 +285,25 @@
                                             <i class="fas fa-times"></i> 승인취소
                                         </a>
                                     {% else %}
-                                        <form method="POST" action="{{ url_for('approve_purchase', purchase_id=purchase.id) }}" class="d-inline">
-                                            <div class="input-group input-group-sm">
-                                                <select name="budget_type" class="form-select" required>
-                                                    <option value="">예산 선택</option>
-                                                    <option value="department">학과지원사업</option>
-                                                    <option value="student">학생지원사업</option>
-                                                </select>
-                                                <button type="submit" class="btn btn-success btn-sm">
-                                                    <i class="fas fa-check"></i> 승인
-                                                </button>
-                                            </div>
-                                        </form>
+                                        <div class="d-flex gap-1">
+                                            <form method="POST" action="{{ url_for('approve_purchase', purchase_id=purchase.id) }}" class="d-inline">
+                                                <div class="input-group input-group-sm">
+                                                    <select name="budget_type" class="form-select" required>
+                                                        <option value="">예산 선택</option>
+                                                        <option value="department">학과지원사업</option>
+                                                        <option value="student">학생지원사업</option>
+                                                    </select>
+                                                    <button type="submit" class="btn btn-success btn-sm">
+                                                        <i class="fas fa-check"></i> 승인
+                                                    </button>
+                                                </div>
+                                            </form>
+                                            <a href="{{ url_for('delete_purchase', purchase_id=purchase.id) }}" 
+                                               class="btn btn-sm btn-outline-danger"
+                                               onclick="return confirm('구매내역을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')">
+                                                <i class="fas fa-trash"></i> 취소
+                                            </a>
+                                        </div>
                                     {% endif %}
                                 </td>
                             </tr>
