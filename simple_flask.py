@@ -51,6 +51,7 @@ class Purchase(db.Model):
     link = db.Column(db.String(500), nullable=False)
     store = db.Column(db.String(100), nullable=False)
     is_approved = db.Column(db.Boolean, default=False)
+    budget_type = db.Column(db.String(50), nullable=True)  # 'department' 또는 'student'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     team = db.relationship('Team', backref=db.backref('purchases', lazy=True))
@@ -137,8 +138,8 @@ def check_balance():
         team = Team.query.filter_by(name=team_name).first()
         if team and team.leader_name == leader_name:
             approved_purchases = Purchase.query.filter_by(team_id=team.id, is_approved=True).all()
-            total_department_spent = sum(p.estimated_cost for p in approved_purchases)
-            total_student_spent = sum(p.estimated_cost for p in approved_purchases)
+            total_department_spent = sum(p.estimated_cost for p in approved_purchases if p.budget_type == 'department')
+            total_student_spent = sum(p.estimated_cost for p in approved_purchases if p.budget_type == 'student')
             
             balance_info = {
                 'team_name': team.name,
@@ -146,7 +147,8 @@ def check_balance():
                 'department_budget': team.department_budget,
                 'student_budget': team.student_budget,
                 'department_remaining': team.department_budget - total_department_spent,
-                'student_remaining': team.student_budget - total_student_spent
+                'student_remaining': team.student_budget - total_student_spent,
+                'purchases': approved_purchases
             }
         else:
             flash('조장 이름이 일치하지 않습니다.', 'error')
@@ -199,23 +201,71 @@ def admin():
         })
     
     pending_purchases = Purchase.query.filter_by(is_approved=False).all()
+    all_purchases = Purchase.query.order_by(Purchase.created_at.desc()).all()
     other_requests = OtherRequest.query.all()
     
     return render_template('admin.html', 
                          teams=teams,
                          all_teams_info=all_teams_info,
                          pending_purchases=pending_purchases,
+                         all_purchases=all_purchases,
                          other_requests=other_requests)
 
-@app.route('/approve_purchase/<int:purchase_id>')
+@app.route('/approve_purchase/<int:purchase_id>', methods=['POST'])
 def approve_purchase(purchase_id):
     if 'admin_logged_in' not in session:
         return redirect(url_for('admin'))
     
     purchase = Purchase.query.get_or_404(purchase_id)
+    budget_type = request.form.get('budget_type')
+    
+    if not budget_type:
+        flash('예산 유형을 선택해주세요.', 'error')
+        return redirect(url_for('admin'))
+    
+    # 예산 차감
+    team = purchase.team
+    if budget_type == 'department':
+        if team.department_budget >= purchase.estimated_cost:
+            team.department_budget -= purchase.estimated_cost
+            purchase.budget_type = 'department'
+        else:
+            flash('학과지원사업 예산이 부족합니다.', 'error')
+            return redirect(url_for('admin'))
+    elif budget_type == 'student':
+        if team.student_budget >= purchase.estimated_cost:
+            team.student_budget -= purchase.estimated_cost
+            purchase.budget_type = 'student'
+        else:
+            flash('학생지원사업 예산이 부족합니다.', 'error')
+            return redirect(url_for('admin'))
+    
     purchase.is_approved = True
     db.session.commit()
     flash('구매내역이 승인되었습니다.', 'success')
+    return redirect(url_for('admin'))
+
+@app.route('/cancel_approval/<int:purchase_id>')
+def cancel_approval(purchase_id):
+    if 'admin_logged_in' not in session:
+        return redirect(url_for('admin'))
+    
+    purchase = Purchase.query.get_or_404(purchase_id)
+    if not purchase.is_approved:
+        flash('이미 승인되지 않은 구매내역입니다.', 'error')
+        return redirect(url_for('admin'))
+    
+    # 예산 복구
+    team = purchase.team
+    if purchase.budget_type == 'department':
+        team.department_budget += purchase.estimated_cost
+    elif purchase.budget_type == 'student':
+        team.student_budget += purchase.estimated_cost
+    
+    purchase.is_approved = False
+    purchase.budget_type = None
+    db.session.commit()
+    flash('구매 승인이 취소되었습니다.', 'success')
     return redirect(url_for('admin'))
 
 @app.route('/logout')
@@ -269,4 +319,6 @@ if __name__ == '__main__':
     # Render 배포를 위한 포트 설정
     import os
     port = int(os.environ.get('PORT', PORT))
-    app.run(debug=DEBUG, host='0.0.0.0', port=port)
+    # 운영 환경에서는 디버그 모드 비활성화
+    debug_mode = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
+    app.run(debug=debug_mode, host='0.0.0.0', port=port)

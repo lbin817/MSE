@@ -161,5 +161,65 @@
         </div>
     </div>
 </div>
+
+<!-- 구매내역 리스트 -->
+{% if balance_info.purchases %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-shopping-cart me-2"></i>구매내역
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead class="table-light">
+                            <tr>
+                                <th>품목명</th>
+                                <th>수량</th>
+                                <th>비용</th>
+                                <th>쇼핑몰</th>
+                                <th>예산유형</th>
+                                <th>구매일시</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for purchase in balance_info.purchases %}
+                            <tr>
+                                <td>
+                                    <div class="text-break">{{ purchase.item_name }}</div>
+                                    {% if purchase.link %}
+                                    <small class="text-muted">
+                                        <a href="{{ purchase.link }}" target="_blank" class="text-decoration-none">
+                                            <i class="fas fa-external-link-alt"></i> 링크
+                                        </a>
+                                    </small>
+                                    {% endif %}
+                                </td>
+                                <td>{{ purchase.quantity }}개</td>
+                                <td class="text-primary"><strong>{{ "{:,}".format(purchase.estimated_cost) }}원</strong></td>
+                                <td>{{ purchase.store }}</td>
+                                <td>
+                                    {% if purchase.budget_type == 'department' %}
+                                        <span class="badge bg-primary">학과지원사업</span>
+                                    {% elif purchase.budget_type == 'student' %}
+                                        <span class="badge bg-success">학생지원사업</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">미선택</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ purchase.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endif %}
 {% endblock %}
