@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}조별 잔여금액 확인 - 예산 관리 시스템{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">
+            <i class="fas fa-wallet me-2"></i>조별 잔여금액 확인
+        </h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-search me-2"></i>조 정보 입력
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">조 번호</label>
+                        <select name="team_name" class="form-select" required>
+                            <option value="">조를 선택하세요</option>
+                            {% for team in teams %}
+                            <option value="{{ team.name }}">{{ team.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">조장 이름</label>
+                        <input type="text" name="leader_name" class="form-control" placeholder="조장 이름을 입력하세요" required>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">확인</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>안내사항
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-check text-success me-2"></i>조장 이름을 정확히 입력해주세요</li>
+                    <li><i class="fas fa-check text-success me-2"></i>학과지원사업과 학생지원사업 잔여금액을 확인할 수 있습니다</li>
+                    <li><i class="fas fa-check text-success me-2"></i>승인된 구매내역만 차감됩니다</li>
+                    <li><i class="fas fa-check text-success me-2"></i>실시간으로 업데이트됩니다</li>
+                </ul>
+                
+                <hr>
+                
+                <h6><i class="fas fa-money-bill-wave me-2"></i>예산 구분</h6>
+                <ul class="list-unstyled small">
+                    <li><i class="fas fa-graduation-cap text-primary me-2"></i><strong>학과지원사업:</strong> 재료비, 시험분석비</li>
+                    <li><i class="fas fa-user-graduate text-success me-2"></i><strong>학생지원사업:</strong> 재료비만</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if balance_info %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>{{ balance_info.team_name }} 잔여금액 현황
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-graduation-cap me-2"></i>학과지원사업
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <small class="text-muted">총 예산</small>
+                                        <h5 class="text-primary">{{ "{:,}".format(balance_info.department_budget) }}원</h5>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted">잔여금액</small>
+                                        <h5 class="text-success">{{ "{:,}".format(balance_info.department_remaining) }}원</h5>
+                                    </div>
+                                </div>
+                                <div class="progress mt-2">
+                                    <div class="progress-bar bg-primary" style="width: {{ (balance_info.department_remaining / balance_info.department_budget * 100) }}%"></div>
+                                </div>
+                                <small class="text-muted">잔여율: {{ "%.1f"|format(balance_info.department_remaining / balance_info.department_budget * 100) }}%</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card border-success">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-user-graduate me-2"></i>학생지원사업
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <small class="text-muted">총 예산</small>
+                                        <h5 class="text-success">{{ "{:,}".format(balance_info.student_budget) }}원</h5>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted">잔여금액</small>
+                                        <h5 class="text-success">{{ "{:,}".format(balance_info.student_remaining) }}원</h5>
+                                    </div>
+                                </div>
+                                <div class="progress mt-2">
+                                    <div class="progress-bar bg-success" style="width: {{ (balance_info.student_remaining / balance_info.student_budget * 100) }}%"></div>
+                                </div>
+                                <small class="text-muted">잔여율: {{ "%.1f"|format(balance_info.student_remaining / balance_info.student_budget * 100) }}%</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle me-2"></i>총 예산</h6>
+                            <h4 class="mb-0">{{ "{:,}".format(balance_info.department_budget + balance_info.student_budget) }}원</h4>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="alert alert-success">
+                            <h6><i class="fas fa-wallet me-2"></i>총 잔여금액</h6>
+                            <h4 class="mb-0">{{ "{:,}".format(balance_info.department_remaining + balance_info.student_remaining) }}원</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    <small class="text-muted">
+                        조장: {{ balance_info.leader_name }}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

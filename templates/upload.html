@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}구매내역 업로드 - 예산 관리 시스템{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">
+            <i class="fas fa-upload me-2"></i>구매내역 업로드
+        </h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-shopping-cart me-2"></i>일반 구매내역 업로드
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">조 번호</label>
+                            <select name="team_name" class="form-select" required>
+                                <option value="">조를 선택하세요</option>
+                                {% for team in teams %}
+                                <option value="{{ team.name }}">{{ team.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">조장 이름</label>
+                            <input type="text" name="leader_name" class="form-control" placeholder="조장 이름을 입력하세요" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">쇼핑몰</label>
+                            <select name="store" class="form-select" required>
+                                <option value="">쇼핑몰을 선택하세요</option>
+                                <option value="시그마알드리치">시그마알드리치</option>
+                                <option value="4science">4science</option>
+                                <option value="디바이스마트">디바이스마트</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">수량</label>
+                            <input type="number" name="quantity" class="form-control" placeholder="수량" min="1" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">품목명</label>
+                        <input type="text" name="item_name" class="form-control" placeholder="구매할 품목명을 입력하세요" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">활용예정 금액 (원)</label>
+                        <div class="input-group">
+                            <input type="number" name="estimated_cost" class="form-control" placeholder="예상 비용" min="1" required>
+                            <span class="input-group-text">원</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">링크</label>
+                        <input type="url" name="link" class="form-control" placeholder="https://..." required>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" name="purchase_submit" class="btn btn-primary btn-lg">업로드</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-question-circle me-2"></i>기타 구매 요청
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">조 번호</label>
+                        <select name="other_team_name" class="form-select" required>
+                            <option value="">조를 선택하세요</option>
+                            {% for team in teams %}
+                            <option value="{{ team.name }}">{{ team.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">조장 이름</label>
+                        <input type="text" name="other_leader_name" class="form-control" placeholder="조장 이름을 입력하세요" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">구매 요청 내용</label>
+                        <textarea name="content" class="form-control" rows="4" placeholder="구매하고자 하는 품목과 이유, 예상 비용 등을 자세히 작성해주세요." required></textarea>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" name="other_submit" class="btn btn-warning">요청하기</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>업로드 안내
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled small">
+                    <li><i class="fas fa-check text-success me-2"></i>조장 이름을 정확히 입력해주세요</li>
+                    <li><i class="fas fa-check text-success me-2"></i>품목명과 링크를 정확히 입력해주세요</li>
+                    <li><i class="fas fa-check text-success me-2"></i>예상 비용을 정확히 입력해주세요</li>
+                    <li><i class="fas fa-check text-success me-2"></i>승인 후 예산에서 차감됩니다</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-link me-2"></i>허용된 쇼핑몰 링크
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 text-center">
+                        <a href="https://www.sigmaaldrich.com/KR/ko" target="_blank" class="btn btn-outline-primary btn-lg w-100 mb-2">
+                            <i class="fas fa-external-link-alt me-2"></i>시그마알드리치
+                        </a>
+                        <small class="text-muted">화학 시약 및 실험용품</small>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <a href="https://4science.net/" target="_blank" class="btn btn-outline-success btn-lg w-100 mb-2">
+                            <i class="fas fa-external-link-alt me-2"></i>4science
+                        </a>
+                        <small class="text-muted">과학기술 연구용품</small>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <a href="https://www.devicemart.co.kr/" target="_blank" class="btn btn-outline-info btn-lg w-100 mb-2">
+                            <i class="fas fa-external-link-alt me-2"></i>디바이스마트
+                        </a>
+                        <small class="text-muted">전자부품 및 장비</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
