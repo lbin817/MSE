@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+
+{% block title %}관리자 모드 - 예산 관리 시스템{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">
+            <i class="fas fa-cog me-2"></i>관리자 모드
+        </h2>
+    </div>
+</div>
+
+<!-- 조장 정보 업데이트 및 예산 설정 -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-edit me-2"></i>조장 정보 업데이트
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">조 번호</label>
+                        <select name="leader_team_name" class="form-select" required>
+                            <option value="">조를 선택하세요</option>
+                            {% for team in teams %}
+                            <option value="{{ team.name }}">{{ team.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">조장 이름</label>
+                        <input type="text" name="leader_name" class="form-control" placeholder="조장 이름을 입력하세요" required>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" name="leader_update" class="btn btn-primary">업데이트</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-won-sign me-2"></i>조별 예산 설정
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info alert-sm mb-3">
+                    <i class="fas fa-info-circle me-1"></i>
+                    <small>조를 선택하면 현재 예산이 자동으로 입력됩니다.</small>
+                </div>
+                
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">조 번호</label>
+                        <select name="budget_team_name" class="form-select" required>
+                            <option value="">조를 선택하세요</option>
+                            {% for team in teams %}
+                            <option value="{{ team.name }}">{{ team.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">학과지원사업 예산 (원)</label>
+                        <input type="number" name="department_budget" id="department_budget" class="form-control" placeholder="예: 600000" min="0" max="10000000" required>
+                        <small class="text-muted">재료비, 시험비 등</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">학생지원사업 예산 (원)</label>
+                        <input type="number" name="student_budget" id="student_budget" class="form-control" placeholder="예: 500000" min="0" max="10000000" required>
+                        <small class="text-muted">재료비만</small>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" name="budget_update" class="btn btn-success">
+                            <i class="fas fa-save me-1"></i>예산 설정
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>전체 예산 현황
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h6 class="text-muted">총 예산</h6>
+                        <h4 class="text-primary">{{ "{:,}".format(all_teams_info|sum(attribute='total_budget')) }}원</h4>
+                    </div>
+                    <div class="col-6">
+                        <h6 class="text-muted">총 사용액</h6>
+                        <h4 class="text-warning">{{ "{:,}".format(all_teams_info|sum(attribute='total_spent')) }}원</h4>
+                    </div>
+                </div>
+                <div class="text-center mt-2">
+                    <h6 class="text-muted">총 잔여액</h6>
+                    <h4 class="text-success">{{ "{:,}".format(all_teams_info|sum(attribute='remaining')) }}원</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 모든 조의 잔여금액 현황 -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-table me-2"></i>모든 조의 잔여금액 현황
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>조 번호</th>
+                                <th>조장</th>
+                                <th>학과지원사업</th>
+                                <th>학생지원사업</th>
+                                <th>총 예산</th>
+                                <th>사용액</th>
+                                <th>잔여액</th>
+                                <th>잔여율</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for team in all_teams_info %}
+                            <tr>
+                                <td><strong>{{ team.team_name }}</strong></td>
+                                <td>{{ team.leader_name or '미설정' }}</td>
+                                <td>{{ "{:,}".format(team.department_budget) }}원</td>
+                                <td>{{ "{:,}".format(team.student_budget) }}원</td>
+                                <td><strong>{{ "{:,}".format(team.total_budget) }}원</strong></td>
+                                <td class="text-warning">{{ "{:,}".format(team.total_spent) }}원</td>
+                                <td class="text-success"><strong>{{ "{:,}".format(team.remaining) }}원</strong></td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar {% if team.remaining > 0 %}bg-success{% else %}bg-danger{% endif %}" 
+                                             style="width: {{ (team.remaining / team.total_budget * 100) if team.total_budget > 0 else 0 }}%">
+                                            {{ "%.1f"|format((team.remaining / team.total_budget * 100) if team.total_budget > 0 else 0) }}%
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- 기타 구매 요청 -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-question-circle me-2"></i>기타 구매 요청
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if other_requests %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead class="table-info">
+                            <tr>
+                                <th>조 번호</th>
+                                <th>요청 내용</th>
+                                <th>요청일시</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for request in other_requests %}
+                            <tr>
+                                <td><strong>{{ request.team.name }}</strong></td>
+                                <td>
+                                    <div class="text-break">{{ request.content }}</div>
+                                </td>
+                                <td>{{ request.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h5>기타 구매 요청이 없습니다.</h5>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 모든 구매내역 리스트 -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>모든 구매내역
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if all_purchases %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead class="table-secondary">
+                            <tr>
+                                <th>ID</th>
+                                <th>조 번호</th>
+                                <th>품목명</th>
+                                <th>수량</th>
+                                <th>예상비용</th>
+                                <th>쇼핑몰</th>
+                                <th>예산유형</th>
+                                <th>상태</th>
+                                <th>요청일시</th>
+                                <th>관리</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for purchase in all_purchases %}
+                            <tr>
+                                <td>{{ purchase.id }}</td>
+                                <td><strong>{{ purchase.team.name }}</strong></td>
+                                <td>
+                                    <div class="text-break">{{ purchase.item_name }}</div>
+                                    {% if purchase.link %}
+                                    <small class="text-muted">
+                                        <a href="{{ purchase.link }}" target="_blank" class="text-decoration-none">
+                                            <i class="fas fa-external-link-alt"></i> 링크
+                                        </a>
+                                    </small>
+                                    {% endif %}
+                                </td>
+                                <td>{{ purchase.quantity }}개</td>
+                                <td>{{ "{:,}".format(purchase.estimated_cost) }}원</td>
+                                <td>{{ purchase.store }}</td>
+                                <td>
+                                    {% if purchase.budget_type == 'department' %}
+                                        <span class="badge bg-primary">학과지원사업</span>
+                                    {% elif purchase.budget_type == 'student' %}
+                                        <span class="badge bg-success">학생지원사업</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">미선택</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if purchase.is_approved %}
+                                        <span class="badge bg-success">승인됨</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">대기중</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ purchase.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    {% if purchase.is_approved %}
+                                        <a href="{{ url_for('cancel_approval', purchase_id=purchase.id) }}" 
+                                           class="btn btn-sm btn-outline-danger"
+                                           onclick="return confirm('승인을 취소하시겠습니까?')">
+                                            <i class="fas fa-times"></i> 승인취소
+                                        </a>
+                                    {% else %}
+                                        <form method="POST" action="{{ url_for('approve_purchase', purchase_id=purchase.id) }}" class="d-inline">
+                                            <div class="input-group input-group-sm">
+                                                <select name="budget_type" class="form-select" required>
+                                                    <option value="">예산 선택</option>
+                                                    <option value="department">학과지원사업</option>
+                                                    <option value="student">학생지원사업</option>
+                                                </select>
+                                                <button type="submit" class="btn btn-success btn-sm">
+                                                    <i class="fas fa-check"></i> 승인
+                                                </button>
+                                            </div>
+                                        </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                    <h5>구매내역이 없습니다.</h5>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 조별 예산 설정 폼에서 조 선택 시 현재 예산 값 자동 입력
+document.addEventListener('DOMContentLoaded', function() {
+    const teamSelect = document.querySelector('select[name="budget_team_name"]');
+    const departmentBudgetInput = document.getElementById('department_budget');
+    const studentBudgetInput = document.getElementById('student_budget');
+    
+    // 팀 데이터를 JavaScript로 전달
+    const teamData = {
+        {% for team in teams %}
+        '{{ team.name }}': {
+            department_budget: {{ team.department_budget }},
+            student_budget: {{ team.student_budget }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    };
+    
+    teamSelect.addEventListener('change', function() {
+        const selectedTeam = this.value;
+        if (selectedTeam && teamData[selectedTeam]) {
+            departmentBudgetInput.value = teamData[selectedTeam].department_budget;
+            studentBudgetInput.value = teamData[selectedTeam].student_budget;
+        } else {
+            departmentBudgetInput.value = '';
+            studentBudgetInput.value = '';
+        }
+    });
+});
+</script>
+{% endblock %}

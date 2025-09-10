@@ -184,6 +184,36 @@ def admin():
             flash('조장 정보가 업데이트되었습니다.', 'success')
             return redirect(url_for('admin'))
     
+    # 예산 설정 처리
+    if request.method == 'POST' and 'budget_update' in request.form:
+        team_name = request.form.get('budget_team_name')
+        try:
+            department_budget = int(request.form.get('department_budget'))
+            student_budget = int(request.form.get('student_budget'))
+            
+            # 유효성 검사
+            if department_budget < 0 or student_budget < 0:
+                flash('예산은 0원 이상이어야 합니다.', 'error')
+                return redirect(url_for('admin'))
+            
+            if department_budget > 10000000 or student_budget > 10000000:
+                flash('예산은 1천만원을 초과할 수 없습니다.', 'error')
+                return redirect(url_for('admin'))
+            
+            team = Team.query.filter_by(name=team_name).first()
+            if team:
+                team.department_budget = department_budget
+                team.student_budget = student_budget
+                db.session.commit()
+                flash(f'{team_name}의 예산이 업데이트되었습니다. (학과지원: {department_budget:,}원, 학생지원: {student_budget:,}원)', 'success')
+                return redirect(url_for('admin'))
+            else:
+                flash('선택한 조를 찾을 수 없습니다.', 'error')
+                return redirect(url_for('admin'))
+        except ValueError:
+            flash('예산은 숫자로 입력해주세요.', 'error')
+            return redirect(url_for('admin'))
+    
     teams = Team.query.all()
     all_teams_info = []
     for team in teams:
