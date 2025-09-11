@@ -215,13 +215,51 @@
     </div>
 </div>
 
+<!-- 엑셀 다운로드 버튼 -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-file-excel me-2"></i>엑셀 다운로드
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <a href="{{ url_for('export_excel') }}" class="btn btn-success btn-lg w-100">
+                            <i class="fas fa-download me-2"></i>전체 구매내역 다운로드
+                        </a>
+                        <small class="text-muted d-block mt-2">모든 조의 구매내역을 CSV 파일로 다운로드합니다.</small>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="dropdown">
+                            <button class="btn btn-outline-success btn-lg w-100 dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-download me-2"></i>조별 구매내역 다운로드
+                            </button>
+                            <ul class="dropdown-menu w-100">
+                                {% for team in teams %}
+                                <li><a class="dropdown-item" href="{{ url_for('export_team_excel', team_id=team.id) }}">
+                                    {{ team.name }} ({{ team.leader_name or '미설정' }})
+                                </a></li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <small class="text-muted d-block mt-2">특정 조의 구매내역만 다운로드합니다.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- 모든 구매내역 리스트 -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="card">
             <div class="card-header bg-dark text-white">
                 <h5 class="mb-0">
-                    <i class="fas fa-list me-2"></i>모든 구매내역
+                    <i class="fas fa-list me-2"></i>모든 구매내역 (일반)
                 </h5>
             </div>
             <div class="card-body">
@@ -249,10 +287,11 @@
                                 <td><strong>{{ purchase.team.name }}</strong></td>
                                 <td>
                                     <div class="text-break">{{ purchase.item_name }}</div>
-                                    {% if purchase.link %}
+                                    {% if purchase.attachment_filename %}
                                     <small class="text-muted">
-                                        <a href="{{ purchase.link }}" target="_blank" class="text-decoration-none">
-                                            <i class="fas fa-external-link-alt"></i> 링크
+                                        <a href="{{ url_for('download_file', filename=purchase.attachment_filename) }}" 
+                                           class="text-decoration-none" target="_blank">
+                                            <i class="fas fa-paperclip"></i> 견적서 다운로드
                                         </a>
                                     </small>
                                     {% endif %}
@@ -315,6 +354,156 @@
                 <div class="text-center py-4">
                     <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
                     <h5>구매내역이 없습니다.</h5>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 다중 품목 구매내역 리스트 -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-list-alt me-2"></i>다중 품목 구매내역
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if all_multi_purchases %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead class="table-secondary">
+                            <tr>
+                                <th>ID</th>
+                                <th>조 번호</th>
+                                <th>쇼핑몰</th>
+                                <th>총 금액</th>
+                                <th>품목 수</th>
+                                <th>예산유형</th>
+                                <th>상태</th>
+                                <th>요청일시</th>
+                                <th>관리</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for multi_purchase in all_multi_purchases %}
+                            <tr>
+                                <td>M{{ multi_purchase.id }}</td>
+                                <td><strong>{{ multi_purchase.team.name }}</strong></td>
+                                <td>{{ multi_purchase.store }}</td>
+                                <td>{{ "{:,}".format(multi_purchase.total_cost) }}원</td>
+                                <td>
+                                    <span class="badge bg-primary">{{ multi_purchase.items|length }}개</span>
+                                    <button type="button" class="btn btn-sm btn-outline-info ms-1" 
+                                            data-bs-toggle="collapse" data-bs-target="#items-{{ multi_purchase.id }}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </td>
+                                <td>
+                                    {% if multi_purchase.budget_type == 'department' %}
+                                        <span class="badge bg-primary">학과지원사업</span>
+                                    {% elif multi_purchase.budget_type == 'student' %}
+                                        <span class="badge bg-success">학생지원사업</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">미선택</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if multi_purchase.is_approved %}
+                                        <span class="badge bg-success">승인됨</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">대기중</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ multi_purchase.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    {% if multi_purchase.is_approved %}
+                                        <a href="{{ url_for('cancel_multi_approval', multi_purchase_id=multi_purchase.id) }}" 
+                                           class="btn btn-sm btn-outline-danger"
+                                           onclick="return confirm('승인을 취소하시겠습니까?')">
+                                            <i class="fas fa-times"></i> 승인취소
+                                        </a>
+                                    {% else %}
+                                        <div class="d-flex gap-1">
+                                            <form method="POST" action="{{ url_for('approve_multi_purchase', multi_purchase_id=multi_purchase.id) }}" class="d-inline">
+                                                <div class="input-group input-group-sm">
+                                                    <select name="budget_type" class="form-select" required>
+                                                        <option value="">예산 선택</option>
+                                                        <option value="department">학과지원사업</option>
+                                                        <option value="student">학생지원사업</option>
+                                                    </select>
+                                                    <button type="submit" class="btn btn-success btn-sm">
+                                                        <i class="fas fa-check"></i> 승인
+                                                    </button>
+                                                </div>
+                                            </form>
+                                            <a href="{{ url_for('delete_multi_purchase', multi_purchase_id=multi_purchase.id) }}" 
+                                               class="btn btn-sm btn-outline-danger"
+                                               onclick="return confirm('구매내역을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')">
+                                                <i class="fas fa-trash"></i> 취소
+                                            </a>
+                                        </div>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <!-- 품목 상세 정보 (접을 수 있음) -->
+                            <tr class="collapse" id="items-{{ multi_purchase.id }}">
+                                <td colspan="9">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-list me-2"></i>품목 상세
+                                                {% if multi_purchase.attachment_filename %}
+                                                <a href="{{ url_for('download_file', filename=multi_purchase.attachment_filename) }}" 
+                                                   class="btn btn-sm btn-outline-primary ms-2" target="_blank">
+                                                    <i class="fas fa-paperclip"></i> 견적서 다운로드
+                                                </a>
+                                                {% endif %}
+                                            </h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="table-responsive">
+                                                <table class="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>품목명</th>
+                                                            <th>수량</th>
+                                                            <th>단가</th>
+                                                            <th>소계</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for item in multi_purchase.items %}
+                                                        <tr>
+                                                            <td>{{ item.item_name }}</td>
+                                                            <td>{{ item.quantity }}개</td>
+                                                            <td>{{ "{:,}".format(item.unit_price) }}원</td>
+                                                            <td><strong>{{ "{:,}".format(item.quantity * item.unit_price) }}원</strong></td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                    <tfoot>
+                                                        <tr class="table-info">
+                                                            <th colspan="3">총계</th>
+                                                            <th>{{ "{:,}".format(multi_purchase.total_cost) }}원</th>
+                                                        </tr>
+                                                    </tfoot>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-list-alt fa-3x text-muted mb-3"></i>
+                    <h5>다중 품목 구매내역이 없습니다.</h5>
                 </div>
                 {% endif %}
             </div>

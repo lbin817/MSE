@@ -20,7 +20,7 @@
                 </h5>
             </div>
             <div class="card-body">
-                <form method="POST">
+                <form method="POST" enctype="multipart/form-data">
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">조 번호</label>
@@ -45,6 +45,9 @@
                                 <option value="시그마알드리치">시그마알드리치</option>
                                 <option value="4science">4science</option>
                                 <option value="디바이스마트">디바이스마트</option>
+                                <option value="덕산약품">덕산약품</option>
+                                <option value="어벤션">어벤션</option>
+                                <option value="올포랩">올포랩</option>
                                 <option value="기타">기타</option>
                             </select>
                         </div>
@@ -67,6 +70,15 @@
                         </div>
                     </div>
                     
+                    <div class="mb-3">
+                        <label class="form-label">견적서 첨부 (선택사항)</label>
+                        <input type="file" name="attachment" class="form-control" accept=".pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.xls,.xlsx">
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            견적서나 관련 문서를 첨부해주세요. (PDF, 이미지, 문서 파일, 최대 16MB)
+                        </div>
+                    </div>
+                    
                     <div class="d-grid">
                         <button type="submit" name="purchase_submit" class="btn btn-primary btn-lg">업로드</button>
                     </div>
@@ -76,6 +88,82 @@
     </div>
     
     <div class="col-md-4">
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>다중 품목 업로드
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label">조 번호</label>
+                        <select name="multi_team_name" class="form-select" required>
+                            <option value="">조를 선택하세요</option>
+                            {% for team in teams %}
+                            <option value="{{ team.name }}">{{ team.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">조장 이름</label>
+                        <input type="text" name="multi_leader_name" class="form-control" placeholder="조장 이름을 입력하세요" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">쇼핑몰</label>
+                        <select name="multi_store" class="form-select" required>
+                            <option value="">쇼핑몰을 선택하세요</option>
+                            <option value="시그마알드리치">시그마알드리치</option>
+                            <option value="4science">4science</option>
+                            <option value="디바이스마트">디바이스마트</option>
+                            <option value="덕산약품">덕산약품</option>
+                            <option value="어벤션">어벤션</option>
+                            <option value="올포랩">올포랩</option>
+                            <option value="기타">기타</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">견적서 첨부 (선택사항)</label>
+                        <input type="file" name="multi_attachment" class="form-control" accept=".pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.xls,.xlsx">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">품목 목록</label>
+                        <div id="items-container">
+                            <div class="item-row mb-2">
+                                <div class="row">
+                                    <div class="col-5">
+                                        <input type="text" name="multi_item_name[]" class="form-control form-control-sm" placeholder="품목명" required>
+                                    </div>
+                                    <div class="col-3">
+                                        <input type="number" name="multi_quantity[]" class="form-control form-control-sm" placeholder="수량" min="1" required>
+                                    </div>
+                                    <div class="col-3">
+                                        <input type="number" name="multi_unit_price[]" class="form-control form-control-sm" placeholder="단가" min="1" required>
+                                    </div>
+                                    <div class="col-1">
+                                        <button type="button" class="btn btn-sm btn-outline-danger remove-item" style="display: none;">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" id="add-item" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-plus"></i> 품목 추가
+                        </button>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" name="multi_submit" class="btn btn-info">다중 품목 업로드</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0">
@@ -139,27 +227,104 @@
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-4 text-center">
+                    <div class="col-md-4 text-center mb-3">
                         <a href="https://www.sigmaaldrich.com/KR/ko" target="_blank" class="btn btn-outline-primary btn-lg w-100 mb-2">
                             <i class="fas fa-external-link-alt me-2"></i>시그마알드리치
                         </a>
                         <small class="text-muted">화학 시약 및 실험용품</small>
                     </div>
-                    <div class="col-md-4 text-center">
+                    <div class="col-md-4 text-center mb-3">
                         <a href="https://4science.net/" target="_blank" class="btn btn-outline-success btn-lg w-100 mb-2">
                             <i class="fas fa-external-link-alt me-2"></i>4science
                         </a>
                         <small class="text-muted">과학기술 연구용품</small>
                     </div>
-                    <div class="col-md-4 text-center">
+                    <div class="col-md-4 text-center mb-3">
                         <a href="https://www.devicemart.co.kr/" target="_blank" class="btn btn-outline-info btn-lg w-100 mb-2">
                             <i class="fas fa-external-link-alt me-2"></i>디바이스마트
                         </a>
                         <small class="text-muted">전자부품 및 장비</small>
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <a href="https://duksan.kr/" target="_blank" class="btn btn-outline-warning btn-lg w-100 mb-2">
+                            <i class="fas fa-external-link-alt me-2"></i>덕산약품
+                        </a>
+                        <small class="text-muted">화학 시약 및 의료용품</small>
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <a href="https://www.avention.co.kr/" target="_blank" class="btn btn-outline-danger btn-lg w-100 mb-2">
+                            <i class="fas fa-external-link-alt me-2"></i>어벤션
+                        </a>
+                        <small class="text-muted">실험기기 및 장비</small>
+                    </div>
+                    <div class="col-md-4 text-center mb-3">
+                        <a href="https://www.allforlab.com/" target="_blank" class="btn btn-outline-secondary btn-lg w-100 mb-2">
+                            <i class="fas fa-external-link-alt me-2"></i>올포랩
+                        </a>
+                        <small class="text-muted">실험용품 및 소모품</small>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+// 다중 품목 업로드 - 품목 추가/제거 기능
+document.addEventListener('DOMContentLoaded', function() {
+    const addItemBtn = document.getElementById('add-item');
+    const itemsContainer = document.getElementById('items-container');
+    
+    addItemBtn.addEventListener('click', function() {
+        const newItemRow = document.createElement('div');
+        newItemRow.className = 'item-row mb-2';
+        newItemRow.innerHTML = `
+            <div class="row">
+                <div class="col-5">
+                    <input type="text" name="multi_item_name[]" class="form-control form-control-sm" placeholder="품목명" required>
+                </div>
+                <div class="col-3">
+                    <input type="number" name="multi_quantity[]" class="form-control form-control-sm" placeholder="수량" min="1" required>
+                </div>
+                <div class="col-3">
+                    <input type="number" name="multi_unit_price[]" class="form-control form-control-sm" placeholder="단가" min="1" required>
+                </div>
+                <div class="col-1">
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-item">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        itemsContainer.appendChild(newItemRow);
+        updateRemoveButtons();
+    });
+    
+    // 품목 제거 버튼 이벤트 리스너
+    itemsContainer.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-item')) {
+            e.target.closest('.item-row').remove();
+            updateRemoveButtons();
+        }
+    });
+    
+    function updateRemoveButtons() {
+        const itemRows = itemsContainer.querySelectorAll('.item-row');
+        const removeButtons = itemsContainer.querySelectorAll('.remove-item');
+        
+        // 첫 번째 항목은 제거 버튼 숨기기
+        removeButtons.forEach((btn, index) => {
+            if (index === 0) {
+                btn.style.display = 'none';
+            } else {
+                btn.style.display = 'inline-block';
+            }
+        });
+    }
+    
+    // 초기 상태 설정
+    updateRemoveButtons();
+});
+</script>
 {% endblock %}
