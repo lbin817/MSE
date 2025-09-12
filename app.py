@@ -10,7 +10,6 @@ import ipaddress
 import csv
 import io
 import codecs
-import pandas as pd
 from config import ALLOWED_IPS, ADMIN_USERNAME, ADMIN_PASSWORD, HOST, PORT, DEBUG
 
 app = Flask(__name__)
@@ -516,12 +515,23 @@ def export_excel():
                 '요청일시': multi_purchase.created_at.strftime('%Y-%m-%d %H:%M')
             })
     
-    # pandas DataFrame 생성
-    df = pd.DataFrame(data)
-    
-    # CSV 생성 (UTF-8 BOM 포함)
+    # CSV 생성 (UTF-8 BOM 포함) - 확실한 방법
     output = io.BytesIO()
-    df.to_csv(output, index=False, encoding='utf-8-sig')
+    
+    # UTF-8 BOM 추가
+    output.write(codecs.BOM_UTF8)
+    
+    # CSV 작성기 생성 (UTF-8 인코딩)
+    writer = csv.writer(io.TextIOWrapper(output, encoding='utf-8', newline=''))
+    
+    # 헤더 작성
+    if data:
+        headers = list(data[0].keys())
+        writer.writerow(headers)
+        
+        # 데이터 작성
+        for row in data:
+            writer.writerow([row[header] for header in headers])
     
     # 응답 생성
     output.seek(0)
@@ -575,12 +585,23 @@ def export_team_excel(team_id):
                 '요청일시': multi_purchase.created_at.strftime('%Y-%m-%d %H:%M')
             })
     
-    # pandas DataFrame 생성
-    df = pd.DataFrame(data)
-    
-    # CSV 생성 (UTF-8 BOM 포함)
+    # CSV 생성 (UTF-8 BOM 포함) - 확실한 방법
     output = io.BytesIO()
-    df.to_csv(output, index=False, encoding='utf-8-sig')
+    
+    # UTF-8 BOM 추가
+    output.write(codecs.BOM_UTF8)
+    
+    # CSV 작성기 생성 (UTF-8 인코딩)
+    writer = csv.writer(io.TextIOWrapper(output, encoding='utf-8', newline=''))
+    
+    # 헤더 작성
+    if data:
+        headers = list(data[0].keys())
+        writer.writerow(headers)
+        
+        # 데이터 작성
+        for row in data:
+            writer.writerow([row[header] for header in headers])
     
     # 응답 생성
     output.seek(0)
