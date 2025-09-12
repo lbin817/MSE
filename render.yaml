@@ -4,10 +4,10 @@ services:
     env: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: python app.py
+    startCommand: python simple_flask.py
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: 3.11.9
       - key: FLASK_ENV
         value: production
       - key: FLASK_DEBUG
