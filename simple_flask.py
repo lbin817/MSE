@@ -16,7 +16,19 @@ from config import ALLOWED_IPS, ADMIN_USERNAME, ADMIN_PASSWORD, HOST, PORT, DEBU
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///budget_management.db')
+
+# 환경별 데이터베이스 설정
+# Render 배포 환경에서는 PostgreSQL 사용, 로컬에서는 SQLite 사용
+if os.environ.get('RENDER'):
+    # Render 배포 환경 (PostgreSQL)
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+    print("🌐 PostgreSQL 데이터베이스 사용 (Render 배포 환경)")
+else:
+    # 로컬 개발 환경 (SQLite)
+    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'budget_management.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+    print(f"💻 SQLite 데이터베이스 사용 (로컬): {db_path}")
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # 파일 업로드 설정
@@ -147,12 +159,13 @@ def upload():
             quantity = int(request.form.get('quantity'))
             estimated_cost = int(request.form.get('estimated_cost'))
             store = request.form.get('store')
+            link = request.form.get('link', '')
             
             # 파일 업로드 처리
             attachment_filename = None
             if 'attachment' in request.files:
                 file = request.files['attachment']
-                if file.filename:
+                if file and file.filename:
                     attachment_filename = save_uploaded_file(file)
                     if not attachment_filename:
                         flash('지원하지 않는 파일 형식입니다. (PDF, 이미지, 문서 파일만 가능)', 'error')
@@ -165,7 +178,7 @@ def upload():
                     item_name=item_name,
                     quantity=quantity,
                     estimated_cost=estimated_cost,
-                    link='',  # 링크 필드 제거
+                    link=link,
                     store=store,
                     attachment_filename=attachment_filename
                 )
@@ -766,17 +779,16 @@ def init_db():
         
         # 초기 팀 데이터 (기존 팀이 없을 때만 생성)
         teams_data = [
-            {'name': '월요일 1조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
-            {'name': '월요일 2조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
-            {'name': '월요일 3조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
-            {'name': '월요일 4조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
-            {'name': '화요일 1조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
-            {'name': '화요일 2조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
-            {'name': '화요일 3조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
-            {'name': '화요일 4조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
-            {'name': '화요일 5조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
-            {'name': '화요일 6조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
-            {'name': '화요일 7조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+            {'name': '1조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+            {'name': '2조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
+            {'name': '3조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+            {'name': '4조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
+            {'name': '5조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+            {'name': '6조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
+            {'name': '7조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+            {'name': '8조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
+            {'name': '9조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+            {'name': '10조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
         ]
         
         # 기존 팀이 없을 때만 새로 생성 (데이터 보존)
