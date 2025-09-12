@@ -243,12 +243,16 @@ def backup_to_json():
         
         print("✅ JSON 백업 완료!")
         
-        # GitHub에도 업로드
+        # GitHub에도 업로드 (토큰이 있을 때만)
         print("🔄 GitHub에 백업 업로드...")
-        for filename, data in [('teams.json', teams_data), ('purchases.json', purchases_data), 
-                              ('multi_purchases.json', multi_purchases_data), ('other_requests.json', other_requests_data)]:
-            content = json.dumps(data, ensure_ascii=False, indent=2)
-            upload_to_github(filename, content)
+        github_token = os.environ.get('GITHUB_TOKEN')
+        if github_token:
+            for filename, data in [('teams.json', teams_data), ('purchases.json', purchases_data), 
+                                  ('multi_purchases.json', multi_purchases_data), ('other_requests.json', other_requests_data)]:
+                content = json.dumps(data, ensure_ascii=False, indent=2)
+                upload_to_github(filename, content)
+        else:
+            print("⚠️ GitHub 토큰이 없어서 로컬 백업만 실행됩니다.")
         
         return True
         
