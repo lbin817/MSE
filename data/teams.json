@@ -1,0 +1,103 @@
+{
+  "teams": [
+    {
+      "id": 1,
+      "name": "월요일 1조",
+      "leader_name": "",
+      "department_budget": 600000,
+      "student_budget": 500000,
+      "original_department_budget": 600000,
+      "original_student_budget": 500000
+    },
+    {
+      "id": 2,
+      "name": "월요일 2조",
+      "leader_name": "",
+      "department_budget": 700000,
+      "student_budget": 500000,
+      "original_department_budget": 700000,
+      "original_student_budget": 500000
+    },
+    {
+      "id": 3,
+      "name": "월요일 3조",
+      "leader_name": "",
+      "department_budget": 600000,
+      "student_budget": 500000,
+      "original_department_budget": 600000,
+      "original_student_budget": 500000
+    },
+    {
+      "id": 4,
+      "name": "월요일 4조",
+      "leader_name": "",
+      "department_budget": 700000,
+      "student_budget": 500000,
+      "original_department_budget": 700000,
+      "original_student_budget": 500000
+    },
+    {
+      "id": 5,
+      "name": "화요일 1조",
+      "leader_name": "",
+      "department_budget": 600000,
+      "student_budget": 500000,
+      "original_department_budget": 600000,
+      "original_student_budget": 500000
+    },
+    {
+      "id": 6,
+      "name": "화요일 2조",
+      "leader_name": "",
+      "department_budget": 700000,
+      "student_budget": 500000,
+      "original_department_budget": 700000,
+      "original_student_budget": 500000
+    },
+    {
+      "id": 7,
+      "name": "화요일 3조",
+      "leader_name": "",
+      "department_budget": 600000,
+      "student_budget": 500000,
+      "original_department_budget": 600000,
+      "original_student_budget": 500000
+    },
+    {
+      "id": 8,
+      "name": "화요일 4조",
+      "leader_name": "",
+      "department_budget": 700000,
+      "student_budget": 500000,
+      "original_department_budget": 700000,
+      "original_student_budget": 500000
+    },
+    {
+      "id": 9,
+      "name": "화요일 5조",
+      "leader_name": "",
+      "department_budget": 600000,
+      "student_budget": 500000,
+      "original_department_budget": 600000,
+      "original_student_budget": 500000
+    },
+    {
+      "id": 10,
+      "name": "화요일 6조",
+      "leader_name": "",
+      "department_budget": 700000,
+      "student_budget": 500000,
+      "original_department_budget": 700000,
+      "original_student_budget": 500000
+    },
+    {
+      "id": 11,
+      "name": "화요일 7조",
+      "leader_name": "",
+      "department_budget": 600000,
+      "student_budget": 500000,
+      "original_department_budget": 600000,
+      "original_student_budget": 500000
+    }
+  ]
+}

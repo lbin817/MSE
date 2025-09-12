@@ -4,7 +4,7 @@ services:
     env: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: python simple_flask.py
+                startCommand: python simple_flask_json.py
     envVars:
       - key: ADMIN_USERNAME
         value: MSE3105
