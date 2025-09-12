@@ -10,6 +10,7 @@ import ipaddress
 import csv
 import io
 import codecs
+import pandas as pd
 from config import ALLOWED_IPS, ADMIN_USERNAME, ADMIN_PASSWORD, HOST, PORT, DEBUG
 
 app = Flask(__name__)
@@ -485,52 +486,42 @@ def export_excel():
     # 일반 구매내역
     purchases = Purchase.query.order_by(Purchase.created_at.desc()).all()
     for purchase in purchases:
-        data.append([
-            purchase.id,
-            purchase.team.name,
-            purchase.team.leader_name or '미설정',
-            purchase.item_name,
-            purchase.quantity,
-            purchase.estimated_cost,
-            purchase.store,
-            '학과지원사업' if getattr(purchase, 'budget_type', None) == 'department' else '학생지원사업' if getattr(purchase, 'budget_type', None) == 'student' else '미선택',
-            '승인됨' if purchase.is_approved else '대기중',
-            purchase.created_at.strftime('%Y-%m-%d %H:%M')
-        ])
+        data.append({
+            'ID': purchase.id,
+            '조 번호': purchase.team.name,
+            '조장': purchase.team.leader_name or '미설정',
+            '품목명': purchase.item_name,
+            '수량': purchase.quantity,
+            '예상비용': purchase.estimated_cost,
+            '쇼핑몰': purchase.store,
+            '예산유형': '학과지원사업' if getattr(purchase, 'budget_type', None) == 'department' else '학생지원사업' if getattr(purchase, 'budget_type', None) == 'student' else '미선택',
+            '상태': '승인됨' if purchase.is_approved else '대기중',
+            '요청일시': purchase.created_at.strftime('%Y-%m-%d %H:%M')
+        })
     
     # 다중 품목 구매내역
     multi_purchases = MultiPurchase.query.order_by(MultiPurchase.created_at.desc()).all()
     for multi_purchase in multi_purchases:
         for item in multi_purchase.items:
-            data.append([
-                f"M{multi_purchase.id}-{item.id}",
-                multi_purchase.team.name,
-                multi_purchase.team.leader_name or '미설정',
-                item.item_name,
-                item.quantity,
-                item.unit_price * item.quantity,
-                multi_purchase.store,
-                '학과지원사업' if multi_purchase.budget_type == 'department' else '학생지원사업' if multi_purchase.budget_type == 'student' else '미선택',
-                '승인됨' if multi_purchase.is_approved else '대기중',
-                multi_purchase.created_at.strftime('%Y-%m-%d %H:%M')
-            ])
+            data.append({
+                'ID': f"M{multi_purchase.id}-{item.id}",
+                '조 번호': multi_purchase.team.name,
+                '조장': multi_purchase.team.leader_name or '미설정',
+                '품목명': item.item_name,
+                '수량': item.quantity,
+                '예상비용': item.unit_price * item.quantity,
+                '쇼핑몰': multi_purchase.store,
+                '예산유형': '학과지원사업' if multi_purchase.budget_type == 'department' else '학생지원사업' if multi_purchase.budget_type == 'student' else '미선택',
+                '상태': '승인됨' if multi_purchase.is_approved else '대기중',
+                '요청일시': multi_purchase.created_at.strftime('%Y-%m-%d %H:%M')
+            })
     
-    # CSV 생성 (UTF-8 BOM 포함) - codecs 사용
+    # pandas DataFrame 생성
+    df = pd.DataFrame(data)
+    
+    # CSV 생성 (UTF-8 BOM 포함)
     output = io.BytesIO()
-    
-    # UTF-8 BOM 추가
-    output.write(codecs.BOM_UTF8)
-    
-    # CSV 작성기 생성 (UTF-8 인코딩)
-    writer = csv.writer(io.TextIOWrapper(output, encoding='utf-8', newline=''))
-    
-    # 헤더 작성
-    headers = ['ID', '조 번호', '조장', '품목명', '수량', '예상비용', '쇼핑몰', '예산유형', '상태', '요청일시']
-    writer.writerow(headers)
-    
-    # 데이터 작성
-    for row in data:
-        writer.writerow(row)
+    df.to_csv(output, index=False, encoding='utf-8-sig')
     
     # 응답 생성
     output.seek(0)
@@ -554,52 +545,42 @@ def export_team_excel(team_id):
     # 해당 조의 일반 구매내역
     purchases = Purchase.query.filter_by(team_id=team_id).order_by(Purchase.created_at.desc()).all()
     for purchase in purchases:
-        data.append([
-            purchase.id,
-            purchase.team.name,
-            purchase.team.leader_name or '미설정',
-            purchase.item_name,
-            purchase.quantity,
-            purchase.estimated_cost,
-            purchase.store,
-            '학과지원사업' if getattr(purchase, 'budget_type', None) == 'department' else '학생지원사업' if getattr(purchase, 'budget_type', None) == 'student' else '미선택',
-            '승인됨' if purchase.is_approved else '대기중',
-            purchase.created_at.strftime('%Y-%m-%d %H:%M')
-        ])
+        data.append({
+            'ID': purchase.id,
+            '조 번호': purchase.team.name,
+            '조장': purchase.team.leader_name or '미설정',
+            '품목명': purchase.item_name,
+            '수량': purchase.quantity,
+            '예상비용': purchase.estimated_cost,
+            '쇼핑몰': purchase.store,
+            '예산유형': '학과지원사업' if getattr(purchase, 'budget_type', None) == 'department' else '학생지원사업' if getattr(purchase, 'budget_type', None) == 'student' else '미선택',
+            '상태': '승인됨' if purchase.is_approved else '대기중',
+            '요청일시': purchase.created_at.strftime('%Y-%m-%d %H:%M')
+        })
     
     # 해당 조의 다중 품목 구매내역
     multi_purchases = MultiPurchase.query.filter_by(team_id=team_id).order_by(MultiPurchase.created_at.desc()).all()
     for multi_purchase in multi_purchases:
         for item in multi_purchase.items:
-            data.append([
-                f"M{multi_purchase.id}-{item.id}",
-                multi_purchase.team.name,
-                multi_purchase.team.leader_name or '미설정',
-                item.item_name,
-                item.quantity,
-                item.unit_price * item.quantity,
-                multi_purchase.store,
-                '학과지원사업' if multi_purchase.budget_type == 'department' else '학생지원사업' if multi_purchase.budget_type == 'student' else '미선택',
-                '승인됨' if multi_purchase.is_approved else '대기중',
-                multi_purchase.created_at.strftime('%Y-%m-%d %H:%M')
-            ])
+            data.append({
+                'ID': f"M{multi_purchase.id}-{item.id}",
+                '조 번호': multi_purchase.team.name,
+                '조장': multi_purchase.team.leader_name or '미설정',
+                '품목명': item.item_name,
+                '수량': item.quantity,
+                '예상비용': item.unit_price * item.quantity,
+                '쇼핑몰': multi_purchase.store,
+                '예산유형': '학과지원사업' if multi_purchase.budget_type == 'department' else '학생지원사업' if multi_purchase.budget_type == 'student' else '미선택',
+                '상태': '승인됨' if multi_purchase.is_approved else '대기중',
+                '요청일시': multi_purchase.created_at.strftime('%Y-%m-%d %H:%M')
+            })
     
-    # CSV 생성 (UTF-8 BOM 포함) - codecs 사용
+    # pandas DataFrame 생성
+    df = pd.DataFrame(data)
+    
+    # CSV 생성 (UTF-8 BOM 포함)
     output = io.BytesIO()
-    
-    # UTF-8 BOM 추가
-    output.write(codecs.BOM_UTF8)
-    
-    # CSV 작성기 생성 (UTF-8 인코딩)
-    writer = csv.writer(io.TextIOWrapper(output, encoding='utf-8', newline=''))
-    
-    # 헤더 작성
-    headers = ['ID', '조 번호', '조장', '품목명', '수량', '예상비용', '쇼핑몰', '예산유형', '상태', '요청일시']
-    writer.writerow(headers)
-    
-    # 데이터 작성
-    for row in data:
-        writer.writerow(row)
+    df.to_csv(output, index=False, encoding='utf-8-sig')
     
     # 응답 생성
     output.seek(0)
@@ -637,8 +618,9 @@ def init_db():
             print(f"   - 기타 요청: {existing_requests_count}개")
             
             # 데이터가 이미 있다면 초기화하지 않음
-            if existing_teams_count > 0 and existing_purchases_count > 0:
-                print("🔒 기존 데이터가 충분히 있습니다. 초기화를 건너뜁니다.")
+            if existing_teams_count > 0:
+                print("🔒 기존 데이터가 있습니다. 초기화를 건너뜁니다.")
+                print("💾 조장 이름, 구매내역 등 모든 데이터가 보존됩니다!")
                 return
             
             # 초기 조 데이터 설정 (없는 조만 추가)
