@@ -6,6 +6,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file, make_response
 from flask_sqlalchemy import SQLAlchemy
 import os
+import json
 from datetime import datetime
 import ipaddress
 from werkzeug.utils import secure_filename
@@ -34,6 +35,11 @@ app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB 제한 (견적서용)
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
+# JSON 백업 폴더 생성
+JSON_BACKUP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'json_backup')
+if not os.path.exists(JSON_BACKUP_DIR):
+    os.makedirs(JSON_BACKUP_DIR)
+
 db = SQLAlchemy(app)
 
 def is_allowed_ip(ip):
@@ -48,6 +54,118 @@ def allowed_file(filename):
     """허용된 파일 확장자인지 확인"""
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# JSON 백업 함수들
+def backup_to_json():
+    """데이터베이스 데이터를 JSON 파일로 백업"""
+    try:
+        print("🔄 JSON 백업 시작...")
+        
+        # 팀 데이터 백업
+        teams = Team.query.all()
+        teams_data = {
+            "teams": [
+                {
+                    "id": team.id,
+                    "name": team.name,
+                    "leader_name": team.leader_name or "",
+                    "department_budget": team.department_budget,
+                    "student_budget": team.student_budget,
+                    "original_department_budget": getattr(team, 'original_department_budget', team.department_budget),
+                    "original_student_budget": getattr(team, 'original_student_budget', team.student_budget)
+                }
+                for team in teams
+            ]
+        }
+        
+        # 구매내역 백업
+        purchases = Purchase.query.all()
+        purchases_data = {
+            "purchases": [
+                {
+                    "id": purchase.id,
+                    "team_id": purchase.team_id,
+                    "item_name": purchase.item_name,
+                    "price": purchase.price,
+                    "quantity": purchase.quantity,
+                    "total_amount": purchase.total_amount,
+                    "store": purchase.store,
+                    "budget_type": getattr(purchase, 'budget_type', 'department'),
+                    "notes": purchase.notes or "",
+                    "attachment_filename": getattr(purchase, 'attachment_filename', None),
+                    "request_date": purchase.request_date.strftime('%Y-%m-%d %H:%M:%S'),
+                    "status": purchase.status,
+                    "is_approved": purchase.is_approved
+                }
+                for purchase in purchases
+            ]
+        }
+        
+        # 다중 구매내역 백업
+        multi_purchases = MultiPurchase.query.all()
+        multi_purchases_data = {
+            "multi_purchases": [
+                {
+                    "id": multi_purchase.id,
+                    "team_id": multi_purchase.team_id,
+                    "store": multi_purchase.store,
+                    "budget_type": multi_purchase.budget_type,
+                    "notes": multi_purchase.notes or "",
+                    "total_amount": multi_purchase.total_amount,
+                    "items": [
+                        {
+                            "id": item.id,
+                            "item_name": item.item_name,
+                            "unit_price": item.unit_price,
+                            "quantity": item.quantity,
+                            "total_amount": item.total_amount
+                        }
+                        for item in multi_purchase.items
+                    ],
+                    "request_date": multi_purchase.request_date.strftime('%Y-%m-%d %H:%M:%S'),
+                    "status": multi_purchase.status,
+                    "is_approved": multi_purchase.is_approved
+                }
+                for multi_purchase in multi_purchases
+            ]
+        }
+        
+        # 기타 요청 백업
+        other_requests = OtherRequest.query.all()
+        other_requests_data = {
+            "other_requests": [
+                {
+                    "id": request.id,
+                    "team_id": request.team_id,
+                    "request_type": request.request_type,
+                    "description": request.description,
+                    "request_date": request.request_date.strftime('%Y-%m-%d %H:%M:%S'),
+                    "status": request.status,
+                    "is_approved": request.is_approved
+                }
+                for request in other_requests
+            ]
+        }
+        
+        # JSON 파일로 저장
+        with open(os.path.join(JSON_BACKUP_DIR, 'teams.json'), 'w', encoding='utf-8') as f:
+            json.dump(teams_data, f, ensure_ascii=False, indent=2)
+        
+        with open(os.path.join(JSON_BACKUP_DIR, 'purchases.json'), 'w', encoding='utf-8') as f:
+            json.dump(purchases_data, f, ensure_ascii=False, indent=2)
+        
+        with open(os.path.join(JSON_BACKUP_DIR, 'multi_purchases.json'), 'w', encoding='utf-8') as f:
+            json.dump(multi_purchases_data, f, ensure_ascii=False, indent=2)
+        
+        with open(os.path.join(JSON_BACKUP_DIR, 'other_requests.json'), 'w', encoding='utf-8') as f:
+            json.dump(other_requests_data, f, ensure_ascii=False, indent=2)
+        
+        print("✅ JSON 백업 완료!")
+        return True
+        
+    except Exception as e:
+        print(f"❌ JSON 백업 오류: {e}")
+        return False
 
 def save_uploaded_file(file):
     """업로드된 파일을 안전하게 저장"""
@@ -177,6 +295,10 @@ def upload():
                 )
                 db.session.add(purchase)
                 db.session.commit()
+                
+                # JSON 백업 실행
+                backup_to_json()
+                
                 flash('구매내역이 성공적으로 업로드되었습니다.', 'success')
                 return redirect(url_for('upload'))
             else:
@@ -253,6 +375,10 @@ def upload():
                     db.session.add(item)
                 
                 db.session.commit()
+                
+                # JSON 백업 실행
+                backup_to_json()
+                
                 flash(f'다중 품목 구매 요청이 성공적으로 제출되었습니다. (총 {len(items_data)}개 품목, {total_cost:,}원)', 'success')
                 return redirect(url_for('upload'))
             else:
@@ -272,6 +398,10 @@ def upload():
                 )
                 db.session.add(other_request)
                 db.session.commit()
+                
+                # JSON 백업 실행
+                backup_to_json()
+                
                 flash('기타 구매 요청이 성공적으로 제출되었습니다.', 'success')
                 return redirect(url_for('upload'))
             else:
@@ -442,6 +572,10 @@ def approve_purchase(purchase_id):
     
     purchase.is_approved = True
     db.session.commit()
+    
+    # JSON 백업 실행
+    backup_to_json()
+    
     flash('구매내역이 승인되었습니다.', 'success')
     return redirect(url_for('admin'))
 
@@ -465,6 +599,10 @@ def cancel_approval(purchase_id):
     purchase.is_approved = False
     purchase.budget_type = None
     db.session.commit()
+    
+    # JSON 백업 실행
+    backup_to_json()
+    
     flash('구매 승인이 취소되었습니다.', 'success')
     return redirect(url_for('admin'))
 
@@ -809,49 +947,50 @@ def migrate_existing_data():
             print("마이그레이션을 건너뛰고 계속 진행합니다.")
 
 def init_db():
-    """데이터베이스 초기화 및 초기 데이터 설정 (데이터 보존)"""
+    """데이터베이스 초기화 (기존 데이터 절대 보존)"""
     with app.app_context():
         try:
-            # 테이블 생성 (기존 데이터 보존)
+            # 1. 기존 데이터베이스 파일이 있는지 확인
+            if os.path.exists('budget_management.db'):
+                print("✅ 기존 데이터베이스 파일 발견! 데이터를 보존합니다.")
+                # 기존 데이터 확인
+                existing_teams = Team.query.count()
+                print(f"기존 팀 개수: {existing_teams}")
+                for team in Team.query.all():
+                    print(f"  - {team.name}: 조장={team.leader_name or '미설정'}")
+                return  # 기존 데이터가 있으면 아무것도 하지 않음
+            
+            print("📝 새로운 데이터베이스 파일 생성...")
+            
+            # 2. 테이블 생성
             db.create_all()
             print("테이블 생성 완료")
             
-            # 기존 데이터 마이그레이션
-            migrate_existing_data()
+            # 3. 초기 팀 데이터 생성 (새 데이터베이스일 때만)
+            teams_data = [
+                {'name': '월요일 1조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+                {'name': '월요일 2조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
+                {'name': '월요일 3조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+                {'name': '월요일 4조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
+                {'name': '화요일 1조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+                {'name': '화요일 2조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
+                {'name': '화요일 3조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+                {'name': '화요일 4조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
+                {'name': '화요일 5조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+                {'name': '화요일 6조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
+                {'name': '화요일 7조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+            ]
             
-            # 기존 팀이 있는지 확인
-            existing_teams = Team.query.count()
-            print(f"기존 팀 개수: {existing_teams}")
+            for team_data in teams_data:
+                team = Team(**team_data)
+                db.session.add(team)
+            db.session.commit()
+            print("초기 팀 데이터가 생성되었습니다.")
             
-            # 기존 팀이 없을 때만 새로 생성 (데이터 보존)
-            if existing_teams == 0:
-                print("기존 팀이 없으므로 새로 생성합니다.")
-                teams_data = [
-                    {'name': '월요일 1조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
-                    {'name': '월요일 2조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
-                    {'name': '월요일 3조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
-                    {'name': '월요일 4조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
-                    {'name': '화요일 1조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
-                    {'name': '화요일 2조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
-                    {'name': '화요일 3조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
-                    {'name': '화요일 4조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
-                    {'name': '화요일 5조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
-                    {'name': '화요일 6조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
-                    {'name': '화요일 7조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
-                ]
-                
-                for team_data in teams_data:
-                    team = Team(**team_data)
-                    db.session.add(team)
-                db.session.commit()
-                print("초기 팀 데이터가 생성되었습니다.")
-            else:
-                print(f"기존 {existing_teams}개 팀 데이터를 보존했습니다.")
-                # 기존 팀 정보 출력
-                for team in Team.query.all():
-                    print(f"  - {team.name}: 조장={team.leader_name or '미설정'}")
+            print("🎉 데이터베이스 초기화 완료!")
             
-            print("데이터베이스 초기화가 완료되었습니다.")
+            # JSON 백업 실행
+            backup_to_json()
             
         except Exception as e:
             print(f"❌ 데이터베이스 초기화 중 오류: {e}")
