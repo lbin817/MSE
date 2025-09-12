@@ -810,6 +810,47 @@ if __name__ == '__main__':
     print("   - 관리자 모드 (MSE3105 / KHU)")
     print("=" * 60)
     
+@app.route('/reset_database', methods=['POST'])
+def reset_database():
+    if 'admin_logged_in' not in session:
+        return redirect(url_for('admin'))
+    
+    try:
+        # 모든 데이터 삭제
+        MultiPurchaseItem.query.delete()
+        MultiPurchase.query.delete()
+        Purchase.query.delete()
+        OtherRequest.query.delete()
+        Team.query.delete()
+        
+        # 기본 팀들 재생성
+        default_teams = [
+            Team(name='1조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='2조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='3조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='4조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='5조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='6조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='7조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='8조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='9조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='10조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0)
+        ]
+        
+        for team in default_teams:
+            db.session.add(team)
+        
+        db.session.commit()
+        flash('데이터베이스가 성공적으로 초기화되었습니다.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash('데이터베이스 초기화 중 오류가 발생했습니다.', 'error')
+        print(f"❌ 데이터베이스 초기화 오류: {e}")
+    
+    return redirect(url_for('admin'))
+
+if __name__ == '__main__':
     # Render 배포를 위한 포트 설정
     import os
     port = int(os.environ.get('PORT', PORT))
