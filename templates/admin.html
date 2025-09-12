@@ -5,9 +5,53 @@
 {% block content %}
 <div class="row">
     <div class="col-12">
-        <h2 class="mb-4">
-            <i class="fas fa-cog me-2"></i>관리자 모드
-        </h2>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0">
+                <i class="fas fa-cog me-2"></i>관리자 모드
+            </h2>
+            <div>
+                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#resetModal">
+                    <i class="fas fa-trash-alt me-2"></i>데이터 초기화
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 데이터 초기화 확인 모달 -->
+<div class="modal fade" id="resetModal" tabindex="-1" aria-labelledby="resetModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="resetModalLabel">
+                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>데이터 초기화 확인
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>경고!</strong> 이 작업은 되돌릴 수 없습니다.
+                </div>
+                <p>다음 데이터가 <strong>모두 삭제</strong>됩니다:</p>
+                <ul>
+                    <li>모든 조장 이름</li>
+                    <li>모든 구매내역</li>
+                    <li>모든 기타 요청</li>
+                    <li>모든 예산 사용 내역</li>
+                </ul>
+                <p>초기화 후에는 기본 조들만 남게 됩니다.</p>
+                <p class="text-danger"><strong>정말로 초기화하시겠습니까?</strong></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                <form method="POST" action="{{ url_for('reset_database') }}" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash-alt me-2"></i>초기화 실행
+                    </button>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 

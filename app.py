@@ -603,6 +603,50 @@ def export_team_excel(team_id):
     
     return response
 
+@app.route('/reset_database', methods=['POST'])
+def reset_database():
+    """데이터베이스 초기화 (관리자만 가능)"""
+    if 'admin_logged_in' not in session:
+        return redirect(url_for('admin'))
+    
+    try:
+        # 모든 데이터 삭제
+        db.session.query(MultiPurchaseItem).delete()
+        db.session.query(MultiPurchase).delete()
+        db.session.query(Purchase).delete()
+        db.session.query(OtherRequest).delete()
+        db.session.query(Team).delete()
+        
+        # 기본 조들 생성
+        teams_data = [
+            # 월요일 조들
+            {'name': '월요일 1조', 'department_budget': 600000, 'student_budget': 500000},
+            {'name': '월요일 2조', 'department_budget': 700000, 'student_budget': 500000},
+            {'name': '월요일 3조', 'department_budget': 600000, 'student_budget': 500000},
+            {'name': '월요일 4조', 'department_budget': 700000, 'student_budget': 500000},
+            # 화요일 조들
+            {'name': '화요일 1조', 'department_budget': 600000, 'student_budget': 500000},
+            {'name': '화요일 2조', 'department_budget': 700000, 'student_budget': 500000},
+            {'name': '화요일 3조', 'department_budget': 600000, 'student_budget': 500000},
+            {'name': '화요일 4조', 'department_budget': 700000, 'student_budget': 500000},
+            {'name': '화요일 5조', 'department_budget': 600000, 'student_budget': 500000},
+            {'name': '화요일 6조', 'department_budget': 700000, 'student_budget': 500000},
+            {'name': '화요일 7조', 'department_budget': 600000, 'student_budget': 500000},
+        ]
+        
+        for team_data in teams_data:
+            team = Team(**team_data)
+            db.session.add(team)
+        
+        db.session.commit()
+        flash('데이터베이스가 성공적으로 초기화되었습니다.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'데이터베이스 초기화 중 오류가 발생했습니다: {e}', 'error')
+    
+    return redirect(url_for('admin'))
+
 def init_db():
     """데이터베이스 테이블 생성 및 초기 데이터 설정 (기존 데이터 보존)"""
     with app.app_context():
@@ -630,58 +674,43 @@ def init_db():
             print(f"   - 구매내역: {existing_purchases_count}개")
             print(f"   - 기타 요청: {existing_requests_count}개")
             
-            # 데이터가 이미 있다면 초기화하지 않음
-            if existing_teams_count > 0:
-                print("🔒 기존 데이터가 있습니다. 초기화를 건너뜁니다.")
-                print("💾 조장 이름, 구매내역 등 모든 데이터가 보존됩니다!")
-                return
+            # 자동 초기화 완전 비활성화 - 사용자가 초기화 버튼을 눌러야만 초기화됨
+            print("🔒 자동 초기화가 비활성화되었습니다.")
+            print("💾 조장 이름, 구매내역 등 모든 데이터가 영구 보존됩니다!")
+            print(f"📊 현재 데이터 상태:")
+            print(f"   - 조: {existing_teams_count}개")
+            print(f"   - 구매내역: {existing_purchases_count}개")
+            print(f"   - 기타 요청: {existing_requests_count}개")
+            print("⚠️  데이터 초기화는 관리자 모드의 '초기화' 버튼을 통해서만 가능합니다!")
             
-            # 초기 조 데이터 설정 (없는 조만 추가)
-            teams_data = [
-                # 월요일 조들
-                {'name': '월요일 1조', 'department_budget': 600000, 'student_budget': 500000},
-                {'name': '월요일 2조', 'department_budget': 700000, 'student_budget': 500000},
-                {'name': '월요일 3조', 'department_budget': 600000, 'student_budget': 500000},
-                {'name': '월요일 4조', 'department_budget': 700000, 'student_budget': 500000},
-                # 화요일 조들
-                {'name': '화요일 1조', 'department_budget': 600000, 'student_budget': 500000},
-                {'name': '화요일 2조', 'department_budget': 700000, 'student_budget': 500000},
-                {'name': '화요일 3조', 'department_budget': 600000, 'student_budget': 500000},
-                {'name': '화요일 4조', 'department_budget': 700000, 'student_budget': 500000},
-                {'name': '화요일 5조', 'department_budget': 600000, 'student_budget': 500000},
-                {'name': '화요일 6조', 'department_budget': 700000, 'student_budget': 500000},
-                {'name': '화요일 7조', 'department_budget': 600000, 'student_budget': 500000},
-            ]
-            
-            # 기존에 없는 조만 추가 (기존 데이터 보존)
-            new_teams_added = 0
-            for team_data in teams_data:
-                existing_team = Team.query.filter_by(name=team_data['name']).first()
-                if not existing_team:
+            # 조가 하나도 없을 때만 기본 조들 생성
+            if existing_teams_count == 0:
+                print("🆕 조가 없으므로 기본 조들을 생성합니다.")
+                teams_data = [
+                    # 월요일 조들
+                    {'name': '월요일 1조', 'department_budget': 600000, 'student_budget': 500000},
+                    {'name': '월요일 2조', 'department_budget': 700000, 'student_budget': 500000},
+                    {'name': '월요일 3조', 'department_budget': 600000, 'student_budget': 500000},
+                    {'name': '월요일 4조', 'department_budget': 700000, 'student_budget': 500000},
+                    # 화요일 조들
+                    {'name': '화요일 1조', 'department_budget': 600000, 'student_budget': 500000},
+                    {'name': '화요일 2조', 'department_budget': 700000, 'student_budget': 500000},
+                    {'name': '화요일 3조', 'department_budget': 600000, 'student_budget': 500000},
+                    {'name': '화요일 4조', 'department_budget': 700000, 'student_budget': 500000},
+                    {'name': '화요일 5조', 'department_budget': 600000, 'student_budget': 500000},
+                    {'name': '화요일 6조', 'department_budget': 700000, 'student_budget': 500000},
+                    {'name': '화요일 7조', 'department_budget': 600000, 'student_budget': 500000},
+                ]
+                
+                for team_data in teams_data:
                     team = Team(**team_data)
                     db.session.add(team)
-                    new_teams_added += 1
-                    print(f"✅ 새로운 조 추가: {team_data['name']}")
-                else:
-                    # 기존 조의 예산 정보가 비어있다면 업데이트
-                    if not existing_team.department_budget or not existing_team.student_budget:
-                        existing_team.department_budget = team_data['department_budget']
-                        existing_team.student_budget = team_data['student_budget']
-                        existing_team.original_department_budget = team_data['department_budget']
-                        existing_team.original_student_budget = team_data['student_budget']
-                        print(f"🔄 조 예산 정보 업데이트: {team_data['name']}")
-            
-            db.session.commit()
-            
-            if new_teams_added > 0:
-                print(f"🆕 {new_teams_added}개의 새로운 조가 추가되었습니다.")
+                    print(f"✅ 기본 조 생성: {team_data['name']}")
+                
+                db.session.commit()
+                print("🆕 기본 조들이 생성되었습니다.")
             else:
-                print("✅ 모든 조가 이미 존재합니다.")
-            
-            # 데이터베이스 백업 정보 출력
-            if db_file_exists and (existing_teams_count > 0 or existing_purchases_count > 0 or existing_requests_count > 0):
-                print("💾 기존 데이터가 성공적으로 보존되었습니다!")
-                print(f"📂 데이터베이스 파일 위치: {db_path}")
+                print("✅ 기존 조들이 보존되었습니다.")
                 
             print("🔒 데이터베이스 테이블이 안전하게 확인되었습니다. (기존 데이터 보존)")
             
