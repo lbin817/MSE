@@ -21,6 +21,8 @@ services:
     database:
       name: budget_management_db
       plan: free
+      # 데이터베이스 영구 보존 설정
+      persistent: true
 
 
 

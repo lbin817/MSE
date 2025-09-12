@@ -610,6 +610,9 @@ def init_db():
                 print(f"🗄️  SQLite 데이터베이스 파일: {db_path}")
                 print(f"📁 파일 존재 여부: {'✅ 존재함' if db_file_exists else '❌ 없음 (새로 생성)'}")
             
+            # 테이블만 생성 (기존 데이터는 보존)
+            db.create_all()
+            
             # 기존 데이터 확인
             existing_teams_count = Team.query.count()
             existing_purchases_count = Purchase.query.count()
@@ -620,8 +623,10 @@ def init_db():
             print(f"   - 구매내역: {existing_purchases_count}개")
             print(f"   - 기타 요청: {existing_requests_count}개")
             
-            # 테이블만 생성 (기존 데이터는 보존)
-            db.create_all()
+            # 데이터가 이미 있다면 초기화하지 않음
+            if existing_teams_count > 0 and existing_purchases_count > 0:
+                print("🔒 기존 데이터가 충분히 있습니다. 초기화를 건너뜁니다.")
+                return
             
             # 초기 조 데이터 설정 (없는 조만 추가)
             teams_data = [
@@ -649,6 +654,14 @@ def init_db():
                     db.session.add(team)
                     new_teams_added += 1
                     print(f"✅ 새로운 조 추가: {team_data['name']}")
+                else:
+                    # 기존 조의 예산 정보가 비어있다면 업데이트
+                    if not existing_team.department_budget or not existing_team.student_budget:
+                        existing_team.department_budget = team_data['department_budget']
+                        existing_team.student_budget = team_data['student_budget']
+                        existing_team.original_department_budget = team_data['department_budget']
+                        existing_team.original_student_budget = team_data['student_budget']
+                        print(f"🔄 조 예산 정보 업데이트: {team_data['name']}")
             
             db.session.commit()
             
