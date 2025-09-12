@@ -60,6 +60,7 @@ def backup_to_json():
     """데이터베이스 데이터를 JSON 파일로 백업"""
     try:
         print("🔄 JSON 백업 시작...")
+        print(f"📁 백업 디렉토리: {JSON_BACKUP_DIR}")
         
         # 팀 데이터 백업
         teams = Team.query.all()
@@ -148,16 +149,25 @@ def backup_to_json():
         }
         
         # JSON 파일로 저장
-        with open(os.path.join(JSON_BACKUP_DIR, 'teams.json'), 'w', encoding='utf-8') as f:
+        teams_file = os.path.join(JSON_BACKUP_DIR, 'teams.json')
+        purchases_file = os.path.join(JSON_BACKUP_DIR, 'purchases.json')
+        multi_purchases_file = os.path.join(JSON_BACKUP_DIR, 'multi_purchases.json')
+        other_requests_file = os.path.join(JSON_BACKUP_DIR, 'other_requests.json')
+        
+        print(f"💾 팀 데이터 저장: {teams_file}")
+        with open(teams_file, 'w', encoding='utf-8') as f:
             json.dump(teams_data, f, ensure_ascii=False, indent=2)
         
-        with open(os.path.join(JSON_BACKUP_DIR, 'purchases.json'), 'w', encoding='utf-8') as f:
+        print(f"💾 구매내역 저장: {purchases_file}")
+        with open(purchases_file, 'w', encoding='utf-8') as f:
             json.dump(purchases_data, f, ensure_ascii=False, indent=2)
         
-        with open(os.path.join(JSON_BACKUP_DIR, 'multi_purchases.json'), 'w', encoding='utf-8') as f:
+        print(f"💾 다중 구매내역 저장: {multi_purchases_file}")
+        with open(multi_purchases_file, 'w', encoding='utf-8') as f:
             json.dump(multi_purchases_data, f, ensure_ascii=False, indent=2)
         
-        with open(os.path.join(JSON_BACKUP_DIR, 'other_requests.json'), 'w', encoding='utf-8') as f:
+        print(f"💾 기타 요청 저장: {other_requests_file}")
+        with open(other_requests_file, 'w', encoding='utf-8') as f:
             json.dump(other_requests_data, f, ensure_ascii=False, indent=2)
         
         print("✅ JSON 백업 완료!")
@@ -996,6 +1006,24 @@ def init_db():
             print(f"❌ 데이터베이스 초기화 중 오류: {e}")
             # 오류 발생 시에도 기존 데이터 보존
             print("오류 발생했지만 기존 데이터는 보존됩니다.")
+
+@app.route('/view_data')
+def view_data():
+    """데이터베이스 보기"""
+    if 'admin_logged_in' not in session:
+        return redirect(url_for('admin'))
+    
+    # 모든 데이터 로드
+    teams = Team.query.all()
+    purchases = Purchase.query.all()
+    multi_purchases = MultiPurchase.query.all()
+    other_requests = OtherRequest.query.all()
+    
+    return render_template('view_data.html', 
+                         teams=teams,
+                         purchases=purchases,
+                         multi_purchases=multi_purchases,
+                         other_requests=other_requests)
 
 @app.route('/reset_database', methods=['POST'])
 def reset_database():
