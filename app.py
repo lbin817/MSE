@@ -478,25 +478,13 @@ def export_excel():
     if 'admin_logged_in' not in session:
         return redirect(url_for('admin'))
     
-    # CSV 데이터 생성 (UTF-8 BOM 포함)
-    output = io.BytesIO()
-    
-    # UTF-8 BOM 추가
-    output.write('\ufeff'.encode('utf-8'))
-    
-    # CSV 작성기 생성 (UTF-8 인코딩)
-    writer = csv.writer(io.TextIOWrapper(output, encoding='utf-8', newline=''))
-    
-    # 헤더 작성
-    writer.writerow([
-        'ID', '조 번호', '조장', '품목명', '수량', '예상비용', '쇼핑몰', 
-        '예산유형', '상태', '요청일시'
-    ])
+    # 데이터 수집
+    data = []
     
     # 일반 구매내역
     purchases = Purchase.query.order_by(Purchase.created_at.desc()).all()
     for purchase in purchases:
-        writer.writerow([
+        data.append([
             purchase.id,
             purchase.team.name,
             purchase.team.leader_name or '미설정',
@@ -512,9 +500,8 @@ def export_excel():
     # 다중 품목 구매내역
     multi_purchases = MultiPurchase.query.order_by(MultiPurchase.created_at.desc()).all()
     for multi_purchase in multi_purchases:
-        # 각 품목별로 행 생성
         for item in multi_purchase.items:
-            writer.writerow([
+            data.append([
                 f"M{multi_purchase.id}-{item.id}",
                 multi_purchase.team.name,
                 multi_purchase.team.leader_name or '미설정',
@@ -527,9 +514,20 @@ def export_excel():
                 multi_purchase.created_at.strftime('%Y-%m-%d %H:%M')
             ])
     
-    # CSV 파일로 응답
-    output.seek(0)
-    response = make_response(output.getvalue())
+    # CSV 생성 (UTF-8 BOM 포함)
+    output = io.StringIO()
+    output.write('\ufeff')  # UTF-8 BOM
+    
+    # 헤더 작성
+    headers = ['ID', '조 번호', '조장', '품목명', '수량', '예상비용', '쇼핑몰', '예산유형', '상태', '요청일시']
+    output.write(','.join(f'"{h}"' for h in headers) + '\n')
+    
+    # 데이터 작성
+    for row in data:
+        output.write(','.join(f'"{str(cell)}"' for cell in row) + '\n')
+    
+    # 응답 생성
+    response = make_response(output.getvalue().encode('utf-8-sig'))
     response.headers['Content-Type'] = 'text/csv; charset=utf-8-sig'
     response.headers['Content-Disposition'] = f'attachment; filename=purchase_history_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
     
@@ -543,25 +541,13 @@ def export_team_excel(team_id):
     
     team = Team.query.get_or_404(team_id)
     
-    # CSV 데이터 생성 (UTF-8 BOM 포함)
-    output = io.BytesIO()
-    
-    # UTF-8 BOM 추가
-    output.write('\ufeff'.encode('utf-8'))
-    
-    # CSV 작성기 생성 (UTF-8 인코딩)
-    writer = csv.writer(io.TextIOWrapper(output, encoding='utf-8', newline=''))
-    
-    # 헤더 작성
-    writer.writerow([
-        'ID', '조 번호', '조장', '품목명', '수량', '예상비용', '쇼핑몰', 
-        '예산유형', '상태', '요청일시'
-    ])
+    # 데이터 수집
+    data = []
     
     # 해당 조의 일반 구매내역
     purchases = Purchase.query.filter_by(team_id=team_id).order_by(Purchase.created_at.desc()).all()
     for purchase in purchases:
-        writer.writerow([
+        data.append([
             purchase.id,
             purchase.team.name,
             purchase.team.leader_name or '미설정',
@@ -577,9 +563,8 @@ def export_team_excel(team_id):
     # 해당 조의 다중 품목 구매내역
     multi_purchases = MultiPurchase.query.filter_by(team_id=team_id).order_by(MultiPurchase.created_at.desc()).all()
     for multi_purchase in multi_purchases:
-        # 각 품목별로 행 생성
         for item in multi_purchase.items:
-            writer.writerow([
+            data.append([
                 f"M{multi_purchase.id}-{item.id}",
                 multi_purchase.team.name,
                 multi_purchase.team.leader_name or '미설정',
@@ -592,9 +577,20 @@ def export_team_excel(team_id):
                 multi_purchase.created_at.strftime('%Y-%m-%d %H:%M')
             ])
     
-    # CSV 파일로 응답
-    output.seek(0)
-    response = make_response(output.getvalue())
+    # CSV 생성 (UTF-8 BOM 포함)
+    output = io.StringIO()
+    output.write('\ufeff')  # UTF-8 BOM
+    
+    # 헤더 작성
+    headers = ['ID', '조 번호', '조장', '품목명', '수량', '예상비용', '쇼핑몰', '예산유형', '상태', '요청일시']
+    output.write(','.join(f'"{h}"' for h in headers) + '\n')
+    
+    # 데이터 작성
+    for row in data:
+        output.write(','.join(f'"{str(cell)}"' for cell in row) + '\n')
+    
+    # 응답 생성
+    response = make_response(output.getvalue().encode('utf-8-sig'))
     response.headers['Content-Type'] = 'text/csv; charset=utf-8-sig'
     response.headers['Content-Disposition'] = f'attachment; filename={team.name}_purchase_history_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
     
