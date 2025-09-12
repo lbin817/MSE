@@ -515,27 +515,23 @@ def export_excel():
                 '요청일시': multi_purchase.created_at.strftime('%Y-%m-%d %H:%M')
             })
     
-    # CSV 생성 (UTF-8 BOM 포함) - 확실한 방법
-    output = io.BytesIO()
+    # CSV 생성 (UTF-8 BOM 포함) - 가장 간단한 방법
+    csv_content = ""
     
     # UTF-8 BOM 추가
-    output.write(codecs.BOM_UTF8)
-    
-    # CSV 작성기 생성 (UTF-8 인코딩)
-    writer = csv.writer(io.TextIOWrapper(output, encoding='utf-8', newline=''))
+    csv_content += '\ufeff'
     
     # 헤더 작성
     if data:
         headers = list(data[0].keys())
-        writer.writerow(headers)
+        csv_content += ','.join(f'"{h}"' for h in headers) + '\n'
         
         # 데이터 작성
         for row in data:
-            writer.writerow([row[header] for header in headers])
+            csv_content += ','.join(f'"{str(row[header])}"' for header in headers) + '\n'
     
     # 응답 생성
-    output.seek(0)
-    response = make_response(output.getvalue())
+    response = make_response(csv_content.encode('utf-8-sig'))
     response.headers['Content-Type'] = 'text/csv; charset=utf-8-sig'
     response.headers['Content-Disposition'] = f'attachment; filename=purchase_history_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
     
@@ -585,27 +581,23 @@ def export_team_excel(team_id):
                 '요청일시': multi_purchase.created_at.strftime('%Y-%m-%d %H:%M')
             })
     
-    # CSV 생성 (UTF-8 BOM 포함) - 확실한 방법
-    output = io.BytesIO()
+    # CSV 생성 (UTF-8 BOM 포함) - 가장 간단한 방법
+    csv_content = ""
     
     # UTF-8 BOM 추가
-    output.write(codecs.BOM_UTF8)
-    
-    # CSV 작성기 생성 (UTF-8 인코딩)
-    writer = csv.writer(io.TextIOWrapper(output, encoding='utf-8', newline=''))
+    csv_content += '\ufeff'
     
     # 헤더 작성
     if data:
         headers = list(data[0].keys())
-        writer.writerow(headers)
+        csv_content += ','.join(f'"{h}"' for h in headers) + '\n'
         
         # 데이터 작성
         for row in data:
-            writer.writerow([row[header] for header in headers])
+            csv_content += ','.join(f'"{str(row[header])}"' for header in headers) + '\n'
     
     # 응답 생성
-    output.seek(0)
-    response = make_response(output.getvalue())
+    response = make_response(csv_content.encode('utf-8-sig'))
     response.headers['Content-Type'] = 'text/csv; charset=utf-8-sig'
     response.headers['Content-Disposition'] = f'attachment; filename={team.name}_purchase_history_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
     
