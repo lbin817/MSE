@@ -80,10 +80,13 @@ def upload_to_github(filename, content):
         if response.status_code == 200:
             sha = response.json().get('sha')
         
-        # 파일 업로드
+        # 파일 업로드 (Base64 인코딩)
+        import base64
+        encoded_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
+        
         data = {
             'message': f'Update {filename}',
-            'content': content,
+            'content': encoded_content,
             'sha': sha
         }
         
