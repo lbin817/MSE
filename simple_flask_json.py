@@ -3,21 +3,20 @@
 JSON 파일 기반 Flask 서버 (데이터 영구 보존)
 """
 
-from flask import Flask, render_template, request, redirect, url_for, flash, session, send_file, make_response
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 import os
 import json
 from datetime import datetime
-import ipaddress
 from werkzeug.utils import secure_filename
 import uuid
-import io
-import csv
-from config import ALLOWED_IPS, ADMIN_USERNAME, ADMIN_PASSWORD
-
-# 기본 설정
+# 기본 설정 (config.py 의존성 제거)
 HOST = '0.0.0.0'
 PORT = 5000
 DEBUG = False
+
+# 관리자 계정
+ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'MSE3105')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'KHU')
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
@@ -41,13 +40,7 @@ app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB 제한 (견적서용)
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-def is_allowed_ip(ip):
-    """IP 주소가 허용된 대역에 속하는지 확인"""
-    try:
-        client_ip = ipaddress.ip_address(ip)
-        return any(client_ip in network for network in ALLOWED_IPS)
-    except:
-        return False
+# IP 제한 기능 제거 (config.py 의존성 제거)
 
 def allowed_file(filename):
     """허용된 파일 확장자인지 확인"""
@@ -202,84 +195,7 @@ def upload():
         flash('구매내역 등록 중 오류가 발생했습니다.', 'error')
         return redirect(url_for('index'))
 
-@app.route('/multi_upload', methods=['POST'])
-def multi_upload():
-    """다중 품목 구매내역 업로드"""
-    try:
-        team_id = int(request.form.get('team_id'))
-        store = request.form.get('store', '').strip()
-        budget_type = request.form.get('budget_type', 'department')
-        notes = request.form.get('notes', '').strip()
-        
-        # 품목 정보 파싱
-        items = []
-        item_names = request.form.getlist('item_name[]')
-        prices = request.form.getlist('price[]')
-        quantities = request.form.getlist('quantity[]')
-        
-        for i, item_name in enumerate(item_names):
-            if item_name.strip():
-                try:
-                    price = float(prices[i])
-                    quantity = int(quantities[i])
-                    items.append({
-                        'item_name': item_name.strip(),
-                        'unit_price': price,
-                        'quantity': quantity,
-                        'total_amount': price * quantity
-                    })
-                except (ValueError, IndexError):
-                    continue
-        
-        if not items:
-            flash('품목 정보를 올바르게 입력해주세요.', 'error')
-            return redirect(url_for('index'))
-        
-        # 팀 정보 로드
-        teams_data = load_json(TEAMS_FILE)
-        team = next((t for t in teams_data['teams'] if t['id'] == team_id), None)
-        if not team:
-            flash('팀을 찾을 수 없습니다.', 'error')
-            return redirect(url_for('index'))
-        
-        # 총 금액 계산
-        total_amount = sum(item['total_amount'] for item in items)
-        
-        # 예산 확인
-        if budget_type == 'department':
-            if total_amount > team['department_budget']:
-                flash(f'학과지원사업 예산이 부족합니다. (잔여: {team["department_budget"]:,}원)', 'error')
-                return redirect(url_for('index'))
-        else:
-            if total_amount > team['student_budget']:
-                flash(f'학생지원사업 예산이 부족합니다. (잔여: {team["student_budget"]:,}원)', 'error')
-                return redirect(url_for('index'))
-        
-        # 다중 구매내역 저장
-        multi_purchases_data = load_json(MULTI_PURCHASES_FILE)
-        multi_purchase = {
-            'id': get_next_id(multi_purchases_data['multi_purchases']),
-            'team_id': team_id,
-            'store': store,
-            'budget_type': budget_type,
-            'notes': notes,
-            'total_amount': total_amount,
-            'items': items,
-            'request_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'status': '대기중',
-            'is_approved': False
-        }
-        
-        multi_purchases_data['multi_purchases'].append(multi_purchase)
-        save_json(MULTI_PURCHASES_FILE, multi_purchases_data)
-        
-        flash('다중 품목 구매내역이 성공적으로 등록되었습니다!', 'success')
-        return redirect(url_for('index'))
-        
-    except Exception as e:
-        print(f"❌ 다중 구매내역 업로드 오류: {e}")
-        flash('다중 품목 구매내역 등록 중 오류가 발생했습니다.', 'error')
-        return redirect(url_for('index'))
+# 다중 품목 업로드 기능 제거 (단순화)
 
 @app.route('/other_request', methods=['POST'])
 def other_request():
