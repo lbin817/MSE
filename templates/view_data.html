@@ -74,7 +74,7 @@
                             <i class="fas fa-info-circle me-2"></i>팀 데이터
                         </div>
                         <div class="data-body">
-                            <div class="json-data">{{ teams | tojson(indent=2) }}</div>
+                            <div class="json-data">{{ teams | tojson(indent=2) if teams else '[]' }}</div>
                         </div>
                     </div>
                 </div>
@@ -87,7 +87,7 @@
                             <i class="fas fa-receipt me-2"></i>단일 품목 구매내역
                         </div>
                         <div class="data-body">
-                            <div class="json-data">{{ purchases | tojson(indent=2) }}</div>
+                            <div class="json-data">{{ purchases | tojson(indent=2) if purchases else '[]' }}</div>
                         </div>
                     </div>
                 </div>
@@ -100,7 +100,7 @@
                             <i class="fas fa-list me-2"></i>다중 품목 구매내역
                         </div>
                         <div class="data-body">
-                            <div class="json-data">{{ multi_purchases | tojson(indent=2) }}</div>
+                            <div class="json-data">{{ multi_purchases | tojson(indent=2) if multi_purchases else '[]' }}</div>
                         </div>
                     </div>
                 </div>
@@ -113,7 +113,7 @@
                             <i class="fas fa-comment me-2"></i>기타 요청 데이터
                         </div>
                         <div class="data-body">
-                            <div class="json-data">{{ other_requests | tojson(indent=2) }}</div>
+                            <div class="json-data">{{ other_requests | tojson(indent=2) if other_requests else '[]' }}</div>
                         </div>
                     </div>
                 </div>

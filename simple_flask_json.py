@@ -12,7 +12,12 @@ from werkzeug.utils import secure_filename
 import uuid
 import io
 import csv
-from config import ALLOWED_IPS, ADMIN_USERNAME, ADMIN_PASSWORD, HOST, PORT, DEBUG
+from config import ALLOWED_IPS, ADMIN_USERNAME, ADMIN_PASSWORD
+
+# 기본 설정
+HOST = '0.0.0.0'
+PORT = 5000
+DEBUG = False
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
