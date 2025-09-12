@@ -469,9 +469,13 @@ def export_excel():
         return redirect(url_for('admin'))
     
     # CSV 데이터 생성 (UTF-8 BOM 포함)
-    output = io.StringIO()
-    output.write('\ufeff')  # UTF-8 BOM 추가
-    writer = csv.writer(output)
+    output = io.BytesIO()
+    
+    # UTF-8 BOM 추가
+    output.write('\ufeff'.encode('utf-8'))
+    
+    # CSV 작성기 생성 (UTF-8 인코딩)
+    writer = csv.writer(io.TextIOWrapper(output, encoding='utf-8', newline=''))
     
     # 헤더 작성
     writer.writerow([
@@ -515,7 +519,7 @@ def export_excel():
     
     # CSV 파일로 응답
     output.seek(0)
-    response = make_response(output.getvalue().encode('utf-8-sig'))
+    response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv; charset=utf-8-sig'
     response.headers['Content-Disposition'] = f'attachment; filename=purchase_history_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
     
@@ -530,9 +534,13 @@ def export_team_excel(team_id):
     team = Team.query.get_or_404(team_id)
     
     # CSV 데이터 생성 (UTF-8 BOM 포함)
-    output = io.StringIO()
-    output.write('\ufeff')  # UTF-8 BOM 추가
-    writer = csv.writer(output)
+    output = io.BytesIO()
+    
+    # UTF-8 BOM 추가
+    output.write('\ufeff'.encode('utf-8'))
+    
+    # CSV 작성기 생성 (UTF-8 인코딩)
+    writer = csv.writer(io.TextIOWrapper(output, encoding='utf-8', newline=''))
     
     # 헤더 작성
     writer.writerow([
@@ -576,7 +584,7 @@ def export_team_excel(team_id):
     
     # CSV 파일로 응답
     output.seek(0)
-    response = make_response(output.getvalue().encode('utf-8-sig'))
+    response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv; charset=utf-8-sig'
     response.headers['Content-Disposition'] = f'attachment; filename={team.name}_purchase_history_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
     
