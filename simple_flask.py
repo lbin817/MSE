@@ -119,10 +119,17 @@ def download_from_github(filename):
         # GitHub API URL
         url = f"https://api.github.com/repos/lbin817/MSE/contents/json_backup/{filename}"
         
+        # 토큰이 있으면 인증 헤더 추가
+        token = os.environ.get('GITHUB_TOKEN')
         headers = {
-            'Accept': 'application/vnd.github.v3+json'
+            'Accept': 'application/vnd.github.v3+json',
+            'User-Agent': 'MSE-Budget-System'
         }
         
+        if token:
+            headers['Authorization'] = f'token {token}'
+        
+        print(f"🔄 {filename} GitHub 다운로드 시도...")
         response = requests.get(url, headers=headers)
         
         if response.status_code == 200:
@@ -130,9 +137,11 @@ def download_from_github(filename):
             # Base64 디코딩
             import base64
             decoded_content = base64.b64decode(content).decode('utf-8')
+            print(f"✅ {filename} GitHub 다운로드 성공!")
             return decoded_content
         else:
             print(f"❌ {filename} GitHub 다운로드 실패: {response.status_code}")
+            print(f"❌ 응답 내용: {response.text[:200]}...")
             return None
             
     except Exception as e:
