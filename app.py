@@ -13,7 +13,11 @@ from config import ALLOWED_IPS, ADMIN_USERNAME, ADMIN_PASSWORD, HOST, PORT, DEBU
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///budget_management.db'
+
+# 데이터베이스를 절대 경로로 설정하여 영구 보존
+import os
+db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'budget_management.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -582,6 +586,11 @@ def init_db():
     """데이터베이스 테이블 생성 및 초기 데이터 설정 (기존 데이터 보존)"""
     with app.app_context():
         try:
+            # 데이터베이스 파일 존재 여부 확인
+            db_file_exists = os.path.exists(db_path)
+            print(f"🗄️  데이터베이스 파일: {db_path}")
+            print(f"📁 파일 존재 여부: {'✅ 존재함' if db_file_exists else '❌ 없음 (새로 생성)'}")
+            
             # 기존 데이터 확인
             existing_teams_count = Team.query.count()
             existing_purchases_count = Purchase.query.count()
@@ -628,6 +637,11 @@ def init_db():
                 print(f"🆕 {new_teams_added}개의 새로운 조가 추가되었습니다.")
             else:
                 print("✅ 모든 조가 이미 존재합니다.")
+            
+            # 데이터베이스 백업 정보 출력
+            if db_file_exists and (existing_teams_count > 0 or existing_purchases_count > 0 or existing_requests_count > 0):
+                print("💾 기존 데이터가 성공적으로 보존되었습니다!")
+                print(f"📂 데이터베이스 파일 위치: {db_path}")
                 
             print("🔒 데이터베이스 테이블이 안전하게 확인되었습니다. (기존 데이터 보존)")
             
