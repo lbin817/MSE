@@ -218,39 +218,60 @@ def check_balance():
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
-    try:
-        # 기본 데이터 로드
-        teams = Team.query.all()
-        
-        # 로그인 확인
-        if 'admin_logged_in' not in session:
-            if request.method == 'POST':
-                username = request.form.get('username')
-                password = request.form.get('password')
-                
-                if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
-                    session['admin_logged_in'] = True
-                    flash('관리자로 로그인되었습니다.', 'success')
-                    return redirect(url_for('admin'))
-                else:
-                    flash('아이디 또는 비밀번호가 올바르지 않습니다.', 'error')
+    # 로그인 확인
+    if 'admin_logged_in' not in session:
+        if request.method == 'POST':
+            username = request.form.get('username')
+            password = request.form.get('password')
             
+            if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+                session['admin_logged_in'] = True
+                flash('관리자로 로그인되었습니다.', 'success')
+                return redirect(url_for('admin'))
+            else:
+                flash('아이디 또는 비밀번호가 올바르지 않습니다.', 'error')
+        
+        return render_template('admin_login.html')
+    
+    # 관리자 로그인 후
+    try:
+        # 기본 데이터 로드 (안전하게)
+        try:
+            teams = Team.query.all()
+        except Exception as db_error:
+            print(f"❌ 데이터베이스 오류: {db_error}")
+            flash('데이터베이스 연결 오류가 발생했습니다.', 'error')
             return render_template('admin_login.html')
         
-        # 관리자 로그인 후 - 폼 처리
+        # 폼 처리
         if request.method == 'POST':
             if 'leader_update' in request.form:
                 team_name = request.form.get('leader_team_name')
                 leader_name = request.form.get('leader_name')
                 
-                team = Team.query.filter_by(name=team_name).first()
-                if team:
-                    team.leader_name = leader_name
-                    db.session.commit()
-                    flash('조장 정보가 업데이트되었습니다.', 'success')
-                    return redirect(url_for('admin'))
+                if team_name and leader_name:
+                    team = Team.query.filter_by(name=team_name).first()
+                    if team:
+                        team.leader_name = leader_name
+                        db.session.commit()
+                        flash('조장 정보가 업데이트되었습니다.', 'success')
+                        return redirect(url_for('admin'))
+            
+            elif 'budget_update' in request.form:
+                team_name = request.form.get('budget_team_name')
+                department_budget = request.form.get('department_budget')
+                student_budget = request.form.get('student_budget')
+                
+                if team_name and department_budget and student_budget:
+                    team = Team.query.filter_by(name=team_name).first()
+                    if team:
+                        team.department_budget = int(department_budget)
+                        team.student_budget = int(student_budget)
+                        db.session.commit()
+                        flash('예산 정보가 업데이트되었습니다.', 'success')
+                        return redirect(url_for('admin'))
         
-        # 기본 데이터만 로드 (안전하게)
+        # 조 정보 생성
         all_teams_info = []
         for team in teams:
             all_teams_info.append({
@@ -259,13 +280,13 @@ def admin():
                 'department_budget': team.department_budget or 0,
                 'student_budget': team.student_budget or 0,
                 'total_budget': (team.department_budget or 0) + (team.student_budget or 0),
-                'total_spent': 0,  # 임시로 0으로 설정
+                'total_spent': 0,
                 'remaining': (team.department_budget or 0) + (team.student_budget or 0)
             })
         
-        # 기본 통계
-        total_budget = sum(team['total_budget'] for team in all_teams_info) if all_teams_info else 0
-        total_spent = 0  # 임시로 0으로 설정
+        # 통계 계산
+        total_budget = sum(team['total_budget'] for team in all_teams_info)
+        total_spent = 0
         total_remaining = total_budget
         
         return render_template('admin.html', 
@@ -282,7 +303,7 @@ def admin():
     
     except Exception as e:
         print(f"❌ admin 라우트 오류: {e}")
-        flash(f'관리자 모드 오류가 발생했습니다: {e}', 'error')
+        flash('관리자 모드에서 오류가 발생했습니다.', 'error')
         return render_template('admin_login.html')
 
 @app.route('/approve_purchase/<int:purchase_id>', methods=['POST'])
