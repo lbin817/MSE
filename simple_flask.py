@@ -13,6 +13,7 @@ from werkzeug.utils import secure_filename
 import uuid
 import io
 import csv
+import requests
 from config import ALLOWED_IPS, ADMIN_USERNAME, ADMIN_PASSWORD, HOST, PORT, DEBUG
 
 app = Flask(__name__)
@@ -54,6 +55,76 @@ def allowed_file(filename):
     """허용된 파일 확장자인지 확인"""
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# GitHub API 함수들
+def upload_to_github(filename, content):
+    """GitHub에 JSON 파일 업로드"""
+    try:
+        # GitHub API 토큰 (환경변수에서 가져오기)
+        token = os.environ.get('GITHUB_TOKEN')
+        if not token:
+            print("❌ GitHub 토큰이 설정되지 않았습니다.")
+            return False
+        
+        # GitHub API URL
+        url = f"https://api.github.com/repos/lbin817/MSE/contents/json_backup/{filename}"
+        
+        # 기존 파일 정보 가져오기
+        headers = {
+            'Authorization': f'token {token}',
+            'Accept': 'application/vnd.github.v3+json'
+        }
+        
+        response = requests.get(url, headers=headers)
+        sha = None
+        if response.status_code == 200:
+            sha = response.json().get('sha')
+        
+        # 파일 업로드
+        data = {
+            'message': f'Update {filename}',
+            'content': content,
+            'sha': sha
+        }
+        
+        response = requests.put(url, headers=headers, json=data)
+        
+        if response.status_code in [200, 201]:
+            print(f"✅ {filename} GitHub 업로드 성공!")
+            return True
+        else:
+            print(f"❌ {filename} GitHub 업로드 실패: {response.status_code}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ GitHub 업로드 오류: {e}")
+        return False
+
+def download_from_github(filename):
+    """GitHub에서 JSON 파일 다운로드"""
+    try:
+        # GitHub API URL
+        url = f"https://api.github.com/repos/lbin817/MSE/contents/json_backup/{filename}"
+        
+        headers = {
+            'Accept': 'application/vnd.github.v3+json'
+        }
+        
+        response = requests.get(url, headers=headers)
+        
+        if response.status_code == 200:
+            content = response.json().get('content', '')
+            # Base64 디코딩
+            import base64
+            decoded_content = base64.b64decode(content).decode('utf-8')
+            return decoded_content
+        else:
+            print(f"❌ {filename} GitHub 다운로드 실패: {response.status_code}")
+            return None
+            
+    except Exception as e:
+        print(f"❌ GitHub 다운로드 오류: {e}")
+        return None
 
 # JSON 백업 함수들
 def backup_to_json():
@@ -171,6 +242,14 @@ def backup_to_json():
             json.dump(other_requests_data, f, ensure_ascii=False, indent=2)
         
         print("✅ JSON 백업 완료!")
+        
+        # GitHub에도 업로드
+        print("🔄 GitHub에 백업 업로드...")
+        for filename, data in [('teams.json', teams_data), ('purchases.json', purchases_data), 
+                              ('multi_purchases.json', multi_purchases_data), ('other_requests.json', other_requests_data)]:
+            content = json.dumps(data, ensure_ascii=False, indent=2)
+            upload_to_github(filename, content)
+        
         return True
         
     except Exception as e:
@@ -961,11 +1040,10 @@ def restore_from_json():
     try:
         print("🔄 JSON 백업에서 데이터 복원 시도...")
         
-        # 팀 데이터 복원
-        teams_file = os.path.join(JSON_BACKUP_DIR, 'teams.json')
-        if os.path.exists(teams_file):
-            with open(teams_file, 'r', encoding='utf-8') as f:
-                teams_data = json.load(f)
+        # GitHub에서 팀 데이터 다운로드
+        teams_content = download_from_github('teams.json')
+        if teams_content:
+            teams_data = json.loads(teams_content)
             
             for team_data in teams_data.get('teams', []):
                 existing_team = Team.query.get(team_data['id'])
@@ -996,11 +1074,10 @@ def restore_from_json():
             db.session.commit()
             print(f"✅ {len(teams_data.get('teams', []))}개 팀 데이터 복원 완료!")
         
-        # 구매내역 복원
-        purchases_file = os.path.join(JSON_BACKUP_DIR, 'purchases.json')
-        if os.path.exists(purchases_file):
-            with open(purchases_file, 'r', encoding='utf-8') as f:
-                purchases_data = json.load(f)
+        # GitHub에서 구매내역 다운로드
+        purchases_content = download_from_github('purchases.json')
+        if purchases_content:
+            purchases_data = json.loads(purchases_content)
             
             for purchase_data in purchases_data.get('purchases', []):
                 existing_purchase = Purchase.query.get(purchase_data['id'])
