@@ -14,10 +14,20 @@ from config import ALLOWED_IPS, ADMIN_USERNAME, ADMIN_PASSWORD, HOST, PORT, DEBU
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
 
-# 데이터베이스를 절대 경로로 설정하여 영구 보존
+# 환경별 데이터베이스 설정
 import os
-db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'budget_management.db')
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+
+# Render 배포 환경에서는 PostgreSQL 사용, 로컬에서는 SQLite 사용
+if os.environ.get('RENDER'):
+    # Render 배포 환경 (PostgreSQL)
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+    print("🌐 PostgreSQL 데이터베이스 사용 (Render 배포 환경)")
+else:
+    # 로컬 개발 환경 (SQLite)
+    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'budget_management.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+    print(f"💻 SQLite 데이터베이스 사용 (로컬): {db_path}")
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -594,10 +604,15 @@ def init_db():
     """데이터베이스 테이블 생성 및 초기 데이터 설정 (기존 데이터 보존)"""
     with app.app_context():
         try:
-            # 데이터베이스 파일 존재 여부 확인
-            db_file_exists = os.path.exists(db_path)
-            print(f"🗄️  데이터베이스 파일: {db_path}")
-            print(f"📁 파일 존재 여부: {'✅ 존재함' if db_file_exists else '❌ 없음 (새로 생성)'}")
+            # 환경별 데이터베이스 정보 출력
+            if os.environ.get('RENDER'):
+                print("🗄️  PostgreSQL 데이터베이스 (Render 클라우드)")
+                print("☁️  데이터는 클라우드에 영구 저장됩니다")
+            else:
+                # 로컬 SQLite 파일 존재 여부 확인
+                db_file_exists = os.path.exists(db_path)
+                print(f"🗄️  SQLite 데이터베이스 파일: {db_path}")
+                print(f"📁 파일 존재 여부: {'✅ 존재함' if db_file_exists else '❌ 없음 (새로 생성)'}")
             
             # 기존 데이터 확인
             existing_teams_count = Team.query.count()
