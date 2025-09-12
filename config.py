@@ -19,6 +19,7 @@ ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'MSE3105')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'KHU')
 
 # 데이터베이스 설정
+# Render에서는 PostgreSQL, 로컬에서는 SQLite 사용
 DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///budget_management.db')
 
 # 보안 설정 (환경 변수에서 가져오기)
@@ -38,12 +39,18 @@ ALLOWED_STORES = [
     '시그마알드리치',
     '4science', 
     '디바이스마트',
-    '기타'
+    '기타',
+    '아마존',
+    '쿠팡',
+    'G마켓'
 ]
 
 # 쇼핑몰 링크
 STORE_LINKS = {
     '시그마알드리치': 'https://www.sigmaaldrich.com/KR/ko',
     '4science': 'https://4science.net/',
-    '디바이스마트': 'https://www.devicemart.co.kr/'
+    '디바이스마트': 'https://www.devicemart.co.kr/',
+    '아마존': 'https://www.amazon.com/',
+    '쿠팡': 'https://www.coupang.com/',
+    'G마켓': 'https://www.gmarket.co.kr/'
 }

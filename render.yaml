@@ -4,7 +4,7 @@ services:
     env: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: python simple_flask.py
+    startCommand: python app.py
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -12,3 +12,15 @@ services:
         value: production
       - key: FLASK_DEBUG
         value: false
+      - key: ADMIN_USERNAME
+        value: MSE3105
+      - key: ADMIN_PASSWORD
+        value: KHU
+      - key: SECRET_KEY
+        value: your-secret-key-change-this-in-production
+    database:
+      name: budget_management_db
+      plan: free
+
+
+
