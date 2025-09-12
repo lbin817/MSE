@@ -143,21 +143,21 @@ def upload():
             
             team = Team.query.filter_by(name=team_name).first()
             if team and team.leader_name == leader_name:
-                purchase = Purchase(
-                    team_id=team.id,
+            purchase = Purchase(
+                team_id=team.id,
                     item_name=item_name,
                     quantity=quantity,
                     estimated_cost=estimated_cost,
                     link=link,
                     store=store
-                )
-                db.session.add(purchase)
-                db.session.commit()
-                flash('구매내역이 성공적으로 업로드되었습니다.', 'success')
-                return redirect(url_for('upload'))
-            else:
-                flash('조장 이름이 일치하지 않습니다.', 'error')
-        
+            )
+            db.session.add(purchase)
+            db.session.commit()
+            flash('구매내역이 성공적으로 업로드되었습니다.', 'success')
+            return redirect(url_for('upload'))
+        else:
+            flash('조장 이름이 일치하지 않습니다.', 'error')
+    
         elif 'other_submit' in request.form:
             # 기타 구매 요청 처리
             team_name = request.form.get('other_team_name')
@@ -166,16 +166,16 @@ def upload():
             
             team = Team.query.filter_by(name=team_name).first()
             if team and team.leader_name == leader_name:
-                other_request = OtherRequest(
-                    team_id=team.id,
+            other_request = OtherRequest(
+                team_id=team.id,
                     content=content
-                )
-                db.session.add(other_request)
-                db.session.commit()
-                flash('기타 구매 요청이 성공적으로 제출되었습니다.', 'success')
-                return redirect(url_for('upload'))
-            else:
-                flash('조장 이름이 일치하지 않습니다.', 'error')
+            )
+            db.session.add(other_request)
+            db.session.commit()
+            flash('기타 구매 요청이 성공적으로 제출되었습니다.', 'success')
+            return redirect(url_for('upload'))
+        else:
+            flash('조장 이름이 일치하지 않습니다.', 'error')
     
     return render_template('upload.html', teams=teams)
 
@@ -652,8 +652,8 @@ def reset_database():
         ]
         
         for team_data in teams_data:
-            team = Team(**team_data)
-            db.session.add(team)
+                team = Team(**team_data)
+                db.session.add(team)
         
         db.session.commit()
         flash('데이터베이스가 성공적으로 초기화되었습니다.', 'success')
@@ -783,6 +783,47 @@ if __name__ == '__main__':
     print("⚠️  주의: 데이터베이스는 자동으로 보존됩니다!")
     print("=" * 60)
     
+@app.route('/reset_database', methods=['POST'])
+def reset_database():
+    if 'admin_logged_in' not in session:
+        return redirect(url_for('admin'))
+    
+    try:
+        # 모든 데이터 삭제
+        MultiPurchaseItem.query.delete()
+        MultiPurchase.query.delete()
+        Purchase.query.delete()
+        OtherRequest.query.delete()
+        Team.query.delete()
+        
+        # 기본 팀들 재생성
+        default_teams = [
+            Team(name='1조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='2조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='3조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='4조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='5조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='6조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='7조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='8조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='9조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='10조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0)
+        ]
+        
+        for team in default_teams:
+            db.session.add(team)
+        
+        db.session.commit()
+        flash('데이터베이스가 성공적으로 초기화되었습니다.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash('데이터베이스 초기화 중 오류가 발생했습니다.', 'error')
+        print(f"❌ 데이터베이스 초기화 오류: {e}")
+    
+    return redirect(url_for('admin'))
+
+if __name__ == '__main__':
     # Render 배포를 위한 포트 설정
     import os
     port = int(os.environ.get('PORT', PORT))
