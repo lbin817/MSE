@@ -788,9 +788,9 @@ def migrate_existing_data():
                     conn.commit()
                 print("attachment_filename 컬럼을 추가했습니다.")
             
-            # 새로운 테이블들 생성 (MultiPurchase, MultiPurchaseItem)
-            db.create_all()
-            print("새로운 테이블들이 생성되었습니다.")
+            # 새로운 테이블들 생성 (MultiPurchase, MultiPurchaseItem) - 기존 데이터 보존
+            # db.create_all()은 init_db()에서만 호출
+            print("테이블 구조 확인 완료.")
             
             # 기존 데이터에 원래 예산 값 설정
             teams = Team.query.all()
@@ -845,6 +845,7 @@ def init_db():
         print("데이터베이스 초기화가 완료되었습니다.")
 
 if __name__ == '__main__':
+    # 데이터베이스 초기화 (기존 데이터 보존)
     init_db()
     print("=" * 60)
     print("🎓 예산 관리 시스템 (Flask)이 시작되었습니다!")
