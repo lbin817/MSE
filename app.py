@@ -218,7 +218,6 @@ def check_balance():
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
-    # 로그인 확인
     if 'admin_logged_in' not in session:
         if request.method == 'POST':
             username = request.form.get('username')
@@ -234,115 +233,83 @@ def admin():
         return render_template('admin_login.html')
     
     # 관리자 로그인 후
-    try:
-        print("🔍 admin 라우트 시작")
+    if request.method == 'POST' and 'leader_update' in request.form:
+        team_name = request.form.get('leader_team_name')
+        leader_name = request.form.get('leader_name')
         
-        # 기본 데이터 로드 (안전하게)
-        try:
-            teams = Team.query.all()
-            print(f"🔍 조 개수: {len(teams)}")
-        except Exception as db_error:
-            print(f"❌ 데이터베이스 오류: {db_error}")
-            flash('데이터베이스 연결 오류가 발생했습니다.', 'error')
-            return render_template('admin_login.html')
-        
-        # 폼 처리
-        if request.method == 'POST':
-            if 'leader_update' in request.form:
-                team_name = request.form.get('leader_team_name')
-                leader_name = request.form.get('leader_name')
-                
-                if team_name and leader_name:
-                    team = Team.query.filter_by(name=team_name).first()
-                    if team:
-                        team.leader_name = leader_name
-                        db.session.commit()
-                        flash('조장 정보가 업데이트되었습니다.', 'success')
-                        return redirect(url_for('admin'))
-            
-            elif 'budget_update' in request.form:
-                team_name = request.form.get('budget_team_name')
-                department_budget = request.form.get('department_budget')
-                student_budget = request.form.get('student_budget')
-                
-                if team_name and department_budget and student_budget:
-                    try:
-                        department_budget = int(department_budget)
-                        student_budget = int(student_budget)
-                        
-                        team = Team.query.filter_by(name=team_name).first()
-                        if team:
-                            team.department_budget = department_budget
-                            team.student_budget = student_budget
-                            
-                            # original_ 필드가 있으면 업데이트
-                            if hasattr(team, 'original_department_budget'):
-                                team.original_department_budget = department_budget
-                            if hasattr(team, 'original_student_budget'):
-                                team.original_student_budget = student_budget
-                            
-                            db.session.commit()
-                            flash('예산 정보가 업데이트되었습니다.', 'success')
-                            return redirect(url_for('admin'))
-                    except ValueError:
-                        flash('예산은 숫자로 입력해주세요.', 'error')
-        
-        # 조 정보 생성 (안전하게)
-        all_teams_info = []
-        for team in teams:
-            try:
-                dept_budget = getattr(team, 'department_budget', 0) or 0
-                stud_budget = getattr(team, 'student_budget', 0) or 0
-                leader_name = getattr(team, 'leader_name', None) or '미설정'
-                
-                all_teams_info.append({
-                    'team_name': team.name,
-                    'leader_name': leader_name,
-                    'department_budget': dept_budget,
-                    'student_budget': stud_budget,
-                    'total_budget': dept_budget + stud_budget,
-                    'total_spent': 0,
-                    'remaining': dept_budget + stud_budget
-                })
-            except Exception as team_error:
-                print(f"❌ 조 정보 생성 오류 (조: {team.name}): {team_error}")
-                # 오류가 발생한 조는 기본값으로 처리
-                all_teams_info.append({
-                    'team_name': team.name,
-                    'leader_name': '미설정',
-                    'department_budget': 0,
-                    'student_budget': 0,
-                    'total_budget': 0,
-                    'total_spent': 0,
-                    'remaining': 0
-                })
-        
-        # 통계 계산
-        total_budget = sum(team['total_budget'] for team in all_teams_info)
-        total_spent = 0
-        total_remaining = total_budget
-        
-        print(f"🔍 통계 계산 완료: 총예산={total_budget}")
-        
-        return render_template('admin.html', 
-                             teams=teams,
-                             all_teams_info=all_teams_info,
-                             pending_purchases=[],
-                             pending_multi_purchases=[],
-                             other_requests=[],
-                             all_purchases=[],
-                             all_multi_purchases=[],
-                             total_budget=total_budget,
-                             total_spent=total_spent,
-                             total_remaining=total_remaining)
+        team = Team.query.filter_by(name=team_name).first()
+        if team:
+            team.leader_name = leader_name
+            db.session.commit()
+            flash('조장 정보가 업데이트되었습니다.', 'success')
+            return redirect(url_for('admin'))
     
-        except Exception as e:
-            import traceback
-            error_traceback = traceback.format_exc()
-            print(f"❌ admin 라우트 오류: {e}")
-            print(f"❌ 상세 오류: {error_traceback}")
-            flash(f'관리자 모드에서 오류가 발생했습니다: {str(e)}', 'error')
-            return render_template('admin_login.html')
+    # 예산 설정 처리
+    if request.method == 'POST' and 'budget_update' in request.form:
+        team_name = request.form.get('budget_team_name')
+        try:
+            department_budget = int(request.form.get('department_budget'))
+            student_budget = int(request.form.get('student_budget'))
+            
+            # 유효성 검사
+            if department_budget < 0 or student_budget < 0:
+                flash('예산은 0원 이상이어야 합니다.', 'error')
+                return redirect(url_for('admin'))
+            
+            if department_budget > 10000000 or student_budget > 10000000:
+                flash('예산은 1천만원을 초과할 수 없습니다.', 'error')
+                return redirect(url_for('admin'))
+            
+            team = Team.query.filter_by(name=team_name).first()
+            if team:
+                team.department_budget = department_budget
+                team.student_budget = student_budget
+                team.original_department_budget = department_budget
+                team.original_student_budget = student_budget
+                db.session.commit()
+                flash(f'{team_name}의 예산이 업데이트되었습니다. (학과지원: {department_budget:,}원, 학생지원: {student_budget:,}원)', 'success')
+                return redirect(url_for('admin'))
+            else:
+                flash('선택한 조를 찾을 수 없습니다.', 'error')
+                return redirect(url_for('admin'))
+        except ValueError:
+            flash('예산은 숫자로 입력해주세요.', 'error')
+            return redirect(url_for('admin'))
+    
+    teams = Team.query.all()
+    all_teams_info = []
+    for team in teams:
+        approved_purchases = Purchase.query.filter_by(team_id=team.id, is_approved=True).all()
+        approved_multi_purchases = MultiPurchase.query.filter_by(team_id=team.id, is_approved=True).all()
+        
+        # 일반 구매내역과 다중 구매내역 모두 포함
+        total_spent = sum(p.estimated_cost for p in approved_purchases)
+        total_spent += sum(mp.total_cost for mp in approved_multi_purchases)
+        
+        all_teams_info.append({
+            'team_name': team.name,
+            'leader_name': team.leader_name,
+            'department_budget': team.department_budget,
+            'student_budget': team.student_budget,
+            'total_budget': team.original_department_budget + team.original_student_budget,  # 원래 예산 사용
+            'total_spent': total_spent,
+            'remaining': (team.original_department_budget + team.original_student_budget) - total_spent  # 원래 예산에서 사용액 차감
+        })
+    
+    pending_purchases = Purchase.query.filter_by(is_approved=False).all()
+    all_purchases = Purchase.query.order_by(Purchase.created_at.desc()).all()
+    pending_multi_purchases = MultiPurchase.query.filter_by(is_approved=False).all()
+    all_multi_purchases = MultiPurchase.query.order_by(MultiPurchase.created_at.desc()).all()
+    other_requests = OtherRequest.query.all()
+    
+    return render_template('admin.html', 
+                         teams=teams,
+                         all_teams_info=all_teams_info,
+                         pending_purchases=pending_purchases,
+                         all_purchases=all_purchases,
+                         pending_multi_purchases=pending_multi_purchases,
+                         all_multi_purchases=all_multi_purchases,
+                         other_requests=other_requests)
 
 @app.route('/approve_purchase/<int:purchase_id>', methods=['POST'])
 def approve_purchase(purchase_id):
