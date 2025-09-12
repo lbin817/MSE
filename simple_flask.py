@@ -858,21 +858,6 @@ def init_db():
             # 오류 발생 시에도 기존 데이터 보존
             print("오류 발생했지만 기존 데이터는 보존됩니다.")
 
-if __name__ == '__main__':
-    # 데이터베이스 초기화 (기존 데이터 보존)
-    init_db()
-    print("=" * 60)
-    print("🎓 예산 관리 시스템 (Flask)이 시작되었습니다!")
-    print("=" * 60)
-    print(f"🌐 접속 주소: http://127.0.0.1:{PORT}")
-    print(f"🌐 또는: http://localhost:{PORT}")
-    print("=" * 60)
-    print("✅ 모든 기능이 사용 가능합니다!")
-    print("   - 구매내역 업로드")
-    print("   - 조별 잔여금액 확인")
-    print("   - 관리자 모드 (MSE3105 / KHU)")
-    print("=" * 60)
-    
 @app.route('/reset_database', methods=['POST'])
 def reset_database():
     if 'admin_logged_in' not in session:
@@ -915,6 +900,21 @@ def reset_database():
     return redirect(url_for('admin'))
 
 if __name__ == '__main__':
+    # 데이터베이스 초기화 (기존 데이터 보존)
+    init_db()
+    print("=" * 60)
+    print("🎓 예산 관리 시스템 (Flask)이 시작되었습니다!")
+    print("=" * 60)
+    print(f"🌐 접속 주소: http://127.0.0.1:{PORT}")
+    print(f"🌐 또는: http://localhost:{PORT}")
+    print("=" * 60)
+    print("✅ 모든 기능이 사용 가능합니다!")
+    print("   - 구매내역 업로드")
+    print("   - 조별 잔여금액 확인")
+    print("   - 관리자 모드 (MSE3105 / KHU)")
+    print("   - 데이터베이스 보기 (다운로드 기능 제거됨)")
+    print("=" * 60)
+    
     # Render 배포를 위한 포트 설정
     import os
     port = int(os.environ.get('PORT', PORT))
