@@ -819,16 +819,17 @@ def init_db():
         
         # 초기 팀 데이터 (기존 팀이 없을 때만 생성)
         teams_data = [
-            {'name': '1조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
-            {'name': '2조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
-            {'name': '3조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
-            {'name': '4조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
-            {'name': '5조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
-            {'name': '6조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
-            {'name': '7조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
-            {'name': '8조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
-            {'name': '9조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
-            {'name': '10조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+            {'name': '월요일 1조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+            {'name': '월요일 2조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
+            {'name': '월요일 3조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+            {'name': '월요일 4조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
+            {'name': '화요일 1조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+            {'name': '화요일 2조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
+            {'name': '화요일 3조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+            {'name': '화요일 4조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
+            {'name': '화요일 5조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+            {'name': '화요일 6조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
+            {'name': '화요일 7조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
         ]
         
         # 기존 팀이 없을 때만 새로 생성 (데이터 보존)
@@ -874,16 +875,17 @@ def reset_database():
         
         # 기본 팀들 재생성
         default_teams = [
-            Team(name='1조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
-            Team(name='2조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
-            Team(name='3조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
-            Team(name='4조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
-            Team(name='5조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
-            Team(name='6조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
-            Team(name='7조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
-            Team(name='8조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
-            Team(name='9조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
-            Team(name='10조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0)
+            Team(name='월요일 1조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='월요일 2조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='월요일 3조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='월요일 4조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='화요일 1조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='화요일 2조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='화요일 3조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='화요일 4조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='화요일 5조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='화요일 6조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0),
+            Team(name='화요일 7조', leader_name='', department_budget=0, student_budget=0, original_department_budget=0, original_student_budget=0)
         ]
         
         for team in default_teams:
