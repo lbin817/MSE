@@ -768,10 +768,8 @@ def migrate_existing_data():
             
         except Exception as e:
             print(f"마이그레이션 중 오류 발생: {e}")
-            # 오류 발생 시 데이터베이스 재생성
-            db.drop_all()
-            db.create_all()
-            print("데이터베이스를 재생성했습니다.")
+            # 오류 발생 시에도 데이터를 보존하고 계속 진행
+            print("마이그레이션을 건너뛰고 계속 진행합니다.")
 
 def init_db():
     """데이터베이스 초기화 및 초기 데이터 설정 (데이터 보존)"""
