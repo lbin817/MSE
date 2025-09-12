@@ -66,29 +66,38 @@ def upload_to_github(filename, content):
             print("❌ GitHub 토큰이 설정되지 않았습니다.")
             return False
         
+        print(f"🔄 {filename} GitHub 업로드 시도...")
+        
         # GitHub API URL
         url = f"https://api.github.com/repos/lbin817/MSE/contents/json_backup/{filename}"
         
         # 기존 파일 정보 가져오기
         headers = {
             'Authorization': f'token {token}',
-            'Accept': 'application/vnd.github.v3+json'
+            'Accept': 'application/vnd.github.v3+json',
+            'User-Agent': 'MSE-Budget-System'
         }
         
         response = requests.get(url, headers=headers)
         sha = None
         if response.status_code == 200:
             sha = response.json().get('sha')
+            print(f"📄 기존 {filename} 파일 발견 (SHA: {sha[:10]}...)")
+        else:
+            print(f"📄 새로운 {filename} 파일 생성")
         
         # 파일 업로드 (Base64 인코딩)
         import base64
         encoded_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
+        print(f"📦 {filename} Base64 인코딩 완료 (크기: {len(encoded_content)} bytes)")
         
         data = {
-            'message': f'Update {filename}',
-            'content': encoded_content,
-            'sha': sha
+            'message': f'Update {filename} - {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}',
+            'content': encoded_content
         }
+        
+        if sha:
+            data['sha'] = sha
         
         response = requests.put(url, headers=headers, json=data)
         
@@ -97,6 +106,7 @@ def upload_to_github(filename, content):
             return True
         else:
             print(f"❌ {filename} GitHub 업로드 실패: {response.status_code}")
+            print(f"❌ 응답 내용: {response.text[:200]}...")
             return False
             
     except Exception as e:
@@ -253,10 +263,22 @@ def backup_to_json():
         if github_token:
             print(f"🔑 토큰 길이: {len(github_token)}")
             print(f"🔑 토큰 시작: {github_token[:10]}...")
-            for filename, data in [('teams.json', teams_data), ('purchases.json', purchases_data), 
-                                  ('multi_purchases.json', multi_purchases_data), ('other_requests.json', other_requests_data)]:
+            
+            # 각 파일별로 업로드
+            files_to_upload = [
+                ('teams.json', teams_data), 
+                ('purchases.json', purchases_data), 
+                ('multi_purchases.json', multi_purchases_data), 
+                ('other_requests.json', other_requests_data)
+            ]
+            
+            success_count = 0
+            for filename, data in files_to_upload:
                 content = json.dumps(data, ensure_ascii=False, indent=2)
-                upload_to_github(filename, content)
+                if upload_to_github(filename, content):
+                    success_count += 1
+            
+            print(f"📊 GitHub 업로드 결과: {success_count}/{len(files_to_upload)} 성공")
         else:
             print("⚠️ GitHub 토큰이 없어서 로컬 백업만 실행됩니다.")
         
@@ -574,6 +596,11 @@ def admin():
         if team:
             team.leader_name = leader_name
             db.session.commit()
+            
+            # JSON 백업 실행
+            print("🔄 조장 정보 업데이트 후 JSON 백업 시작!")
+            backup_to_json()
+            
             flash('조장 정보가 업데이트되었습니다.', 'success')
             return redirect(url_for('admin'))
     
@@ -600,6 +627,11 @@ def admin():
                 team.original_department_budget = department_budget
                 team.original_student_budget = student_budget
                 db.session.commit()
+                
+                # JSON 백업 실행
+                print("🔄 예산 정보 업데이트 후 JSON 백업 시작!")
+                backup_to_json()
+                
                 flash(f'{team_name}의 예산이 업데이트되었습니다. (학과지원: {department_budget:,}원, 학생지원: {student_budget:,}원)', 'success')
                 return redirect(url_for('admin'))
             else:
