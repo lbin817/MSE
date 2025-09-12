@@ -17,17 +17,10 @@ from config import ALLOWED_IPS, ADMIN_USERNAME, ADMIN_PASSWORD, HOST, PORT, DEBU
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 
-# 환경별 데이터베이스 설정
-# Render 배포 환경에서는 PostgreSQL 사용, 로컬에서는 SQLite 사용
-if os.environ.get('RENDER'):
-    # Render 배포 환경 (PostgreSQL)
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
-    print("🌐 PostgreSQL 데이터베이스 사용 (Render 배포 환경)")
-else:
-    # 로컬 개발 환경 (SQLite)
-    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'budget_management.db')
-    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
-    print(f"💻 SQLite 데이터베이스 사용 (로컬): {db_path}")
+# 데이터베이스 설정 - 모든 환경에서 SQLite 사용
+db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'budget_management.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+print(f"💾 SQLite 데이터베이스 사용: {db_path}")
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 

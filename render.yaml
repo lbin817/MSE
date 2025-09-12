@@ -6,25 +6,12 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: python simple_flask.py
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.9
-      - key: FLASK_ENV
-        value: production
-      - key: FLASK_DEBUG
-        value: false
       - key: ADMIN_USERNAME
         value: MSE3105
       - key: ADMIN_PASSWORD
         value: KHU
       - key: SECRET_KEY
         value: your-secret-key-change-this-in-production
-      - key: SKIP_DB_INIT
-        value: true
-    database:
-      name: budget_management_db
-      plan: free
-      # 데이터베이스 영구 보존 설정
-      persistent: true
 
 
 
