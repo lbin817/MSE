@@ -102,16 +102,16 @@
                 <div class="row text-center">
                     <div class="col-6">
                         <h6 class="text-muted">총 예산</h6>
-                        <h4 class="text-primary">{{ "{:,}".format(total_budget) }}원</h4>
+                        <h4 class="text-primary">{{ "{:,}".format(total_budget or 0) }}원</h4>
                     </div>
                     <div class="col-6">
                         <h6 class="text-muted">총 사용액</h6>
-                        <h4 class="text-warning">{{ "{:,}".format(total_spent) }}원</h4>
+                        <h4 class="text-warning">{{ "{:,}".format(total_spent or 0) }}원</h4>
                     </div>
                 </div>
                 <div class="text-center mt-2">
                     <h6 class="text-muted">총 잔여액</h6>
-                    <h4 class="text-success">{{ "{:,}".format(total_remaining) }}원</h4>
+                    <h4 class="text-success">{{ "{:,}".format(total_remaining or 0) }}원</h4>
                 </div>
             </div>
         </div>

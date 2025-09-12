@@ -26,11 +26,11 @@ def is_allowed_ip(ip):
     except:
         return False
 
-@app.before_request
-def check_ip():
-    """모든 요청에 대해 IP 제한 확인"""
-    if request.remote_addr and not is_allowed_ip(request.remote_addr):
-        return "접근이 제한된 IP 주소입니다.", 403
+# @app.before_request
+# def check_ip():
+#     """모든 요청에 대해 IP 제한 확인"""
+#     if request.remote_addr and not is_allowed_ip(request.remote_addr):
+#         return "접근이 제한된 IP 주소입니다.", 403
 
 # 데이터베이스 모델
 class Team(db.Model):
@@ -72,45 +72,37 @@ class OtherRequest(db.Model):
     def __repr__(self):
         return f'<OtherRequest {self.id}>'
 
-# 폼 클래스
-class PurchaseForm(FlaskForm):
-    team_name = SelectField('조 번호', choices=[], validators=[DataRequired()])
-    leader_name = StringField('조장 이름', validators=[DataRequired()])
-    item_name = StringField('품목명', validators=[DataRequired()])
-    quantity = IntegerField('수량', validators=[DataRequired(), NumberRange(min=1)])
-    estimated_cost = IntegerField('활용예정 금액 (원)', validators=[DataRequired(), NumberRange(min=1)])
-    link = StringField('링크', validators=[DataRequired()])
-    store = SelectField('쇼핑몰', choices=[
-        ('시그마알드리치', '시그마알드리치'),
-        ('4science', '4science'),
-        ('디바이스마트', '디바이스마트'),
-        ('기타', '기타'),
-        ('아마존', '아마존'),
-        ('쿠팡', '쿠팡'),
-        ('G마켓', 'G마켓')
-    ], validators=[DataRequired()])
-    submit = SubmitField('업로드')
+class MultiPurchase(db.Model):
+    """다중 품목 구매 요청"""
+    id = db.Column(db.Integer, primary_key=True)
+    team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
+    store = db.Column(db.String(100), nullable=False)
+    total_cost = db.Column(db.Integer, nullable=False)
+    attachment_filename = db.Column(db.String(255), nullable=True)
+    is_approved = db.Column(db.Boolean, default=False)
+    budget_type = db.Column(db.String(50), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    team = db.relationship('Team', backref=db.backref('multi_purchases', lazy=True))
+    items = db.relationship('MultiPurchaseItem', backref='multi_purchase', lazy=True, cascade='all, delete-orphan')
+    
+    def __repr__(self):
+        return f'<MultiPurchase {self.id}>'
 
-class OtherRequestForm(FlaskForm):
-    team_name = SelectField('조 번호', choices=[], validators=[DataRequired()])
-    leader_name = StringField('조장 이름', validators=[DataRequired()])
-    content = TextAreaField('구매 요청 내용', validators=[DataRequired()])
-    submit = SubmitField('요청하기')
+class MultiPurchaseItem(db.Model):
+    """다중 품목 구매의 개별 품목"""
+    id = db.Column(db.Integer, primary_key=True)
+    multi_purchase_id = db.Column(db.Integer, db.ForeignKey('multi_purchase.id'), nullable=False)
+    item_name = db.Column(db.String(200), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    unit_price = db.Column(db.Integer, nullable=False)
+    
+    def __repr__(self):
+        return f'<MultiPurchaseItem {self.item_name}>'
 
-class TeamCheckForm(FlaskForm):
-    team_name = SelectField('조 번호', choices=[], validators=[DataRequired()])
-    leader_name = StringField('조장 이름', validators=[DataRequired()])
-    submit = SubmitField('확인')
 
-class AdminLoginForm(FlaskForm):
-    username = StringField('아이디', validators=[DataRequired()])
-    password = PasswordField('비밀번호', validators=[DataRequired()])
-    submit = SubmitField('로그인')
 
-class LeaderUpdateForm(FlaskForm):
-    team_name = SelectField('조 번호', choices=[], validators=[DataRequired()])
-    leader_name = StringField('조장 이름', validators=[DataRequired()])
-    submit = SubmitField('업데이트')
+
 
 # 라우트
 @app.route('/')
@@ -119,64 +111,78 @@ def index():
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload():
-    purchase_form = PurchaseForm()
-    other_form = OtherRequestForm()
-    
-    # 조 목록 업데이트
     teams = Team.query.all()
-    team_choices = [(team.name, team.name) for team in teams]
-    purchase_form.team_name.choices = team_choices
-    other_form.team_name.choices = team_choices
     
-    if purchase_form.validate_on_submit():
-        team = Team.query.filter_by(name=purchase_form.team_name.data).first()
-        if team and team.leader_name == purchase_form.leader_name.data:
-            purchase = Purchase(
-                team_id=team.id,
-                item_name=purchase_form.item_name.data,
-                quantity=purchase_form.quantity.data,
-                estimated_cost=purchase_form.estimated_cost.data,
-                link=purchase_form.link.data,
-                store=purchase_form.store.data
-            )
-            db.session.add(purchase)
-            db.session.commit()
-            flash('구매내역이 성공적으로 업로드되었습니다.', 'success')
-            return redirect(url_for('upload'))
-        else:
-            flash('조장 이름이 일치하지 않습니다.', 'error')
+    if request.method == 'POST':
+        if 'purchase_submit' in request.form:
+            # 구매내역 업로드 처리
+            team_name = request.form.get('team_name')
+            leader_name = request.form.get('leader_name')
+            item_name = request.form.get('item_name')
+            quantity = int(request.form.get('quantity'))
+            estimated_cost = int(request.form.get('estimated_cost'))
+            link = request.form.get('link')
+            store = request.form.get('store')
+            
+            team = Team.query.filter_by(name=team_name).first()
+            if team and team.leader_name == leader_name:
+                purchase = Purchase(
+                    team_id=team.id,
+                    item_name=item_name,
+                    quantity=quantity,
+                    estimated_cost=estimated_cost,
+                    link=link,
+                    store=store
+                )
+                db.session.add(purchase)
+                db.session.commit()
+                flash('구매내역이 성공적으로 업로드되었습니다.', 'success')
+                return redirect(url_for('upload'))
+            else:
+                flash('조장 이름이 일치하지 않습니다.', 'error')
+        
+        elif 'other_submit' in request.form:
+            # 기타 구매 요청 처리
+            team_name = request.form.get('other_team_name')
+            leader_name = request.form.get('other_leader_name')
+            content = request.form.get('content')
+            
+            team = Team.query.filter_by(name=team_name).first()
+            if team and team.leader_name == leader_name:
+                other_request = OtherRequest(
+                    team_id=team.id,
+                    content=content
+                )
+                db.session.add(other_request)
+                db.session.commit()
+                flash('기타 구매 요청이 성공적으로 제출되었습니다.', 'success')
+                return redirect(url_for('upload'))
+            else:
+                flash('조장 이름이 일치하지 않습니다.', 'error')
     
-    if other_form.validate_on_submit():
-        team = Team.query.filter_by(name=other_form.team_name.data).first()
-        if team and team.leader_name == other_form.leader_name.data:
-            other_request = OtherRequest(
-                team_id=team.id,
-                content=other_form.content.data
-            )
-            db.session.add(other_request)
-            db.session.commit()
-            flash('기타 구매 요청이 성공적으로 제출되었습니다.', 'success')
-            return redirect(url_for('upload'))
-        else:
-            flash('조장 이름이 일치하지 않습니다.', 'error')
-    
-    return render_template('upload.html', purchase_form=purchase_form, other_form=other_form)
+    return render_template('upload.html', teams=teams)
 
 @app.route('/check_balance', methods=['GET', 'POST'])
 def check_balance():
-    form = TeamCheckForm()
     teams = Team.query.all()
-    form.team_name.choices = [(team.name, team.name) for team in teams]
-    
     balance_info = None
     
-    if form.validate_on_submit():
-        team = Team.query.filter_by(name=form.team_name.data).first()
-        if team and team.leader_name == form.leader_name.data:
+    if request.method == 'POST':
+        team_name = request.form.get('team_name')
+        leader_name = request.form.get('leader_name')
+        
+        team = Team.query.filter_by(name=team_name).first()
+        if team and team.leader_name == leader_name:
             # 승인된 구매내역의 총액 계산
             approved_purchases = Purchase.query.filter_by(team_id=team.id, is_approved=True).all()
-            total_department_spent = sum(p.estimated_cost for p in approved_purchases)
-            total_student_spent = sum(p.estimated_cost for p in approved_purchases)
+            approved_multi_purchases = MultiPurchase.query.filter_by(team_id=team.id, is_approved=True).all()
+            
+            total_department_spent = sum(p.estimated_cost for p in approved_purchases if p.budget_type == 'department')
+            total_student_spent = sum(p.estimated_cost for p in approved_purchases if p.budget_type == 'student')
+            
+            # 다중 구매내역에서도 예산 차감액 계산
+            total_department_spent += sum(mp.total_cost for mp in approved_multi_purchases if mp.budget_type == 'department')
+            total_student_spent += sum(mp.total_cost for mp in approved_multi_purchases if mp.budget_type == 'student')
             
             balance_info = {
                 'team_name': team.name,
@@ -184,37 +190,41 @@ def check_balance():
                 'department_budget': team.department_budget,
                 'student_budget': team.student_budget,
                 'department_remaining': team.department_budget - total_department_spent,
-                'student_remaining': team.student_budget - total_student_spent
+                'student_remaining': team.student_budget - total_student_spent,
+                'purchases': approved_purchases,
+                'multi_purchases': approved_multi_purchases
             }
         else:
             flash('조장 이름이 일치하지 않습니다.', 'error')
     
-    return render_template('check_balance.html', form=form, balance_info=balance_info)
+    return render_template('check_balance.html', teams=teams, balance_info=balance_info)
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
-    login_form = AdminLoginForm()
-    leader_form = LeaderUpdateForm()
-    
     teams = Team.query.all()
-    leader_form.team_name.choices = [(team.name, team.name) for team in teams]
     
     if 'admin_logged_in' not in session:
-        if login_form.validate_on_submit():
-            if login_form.username.data == ADMIN_USERNAME and login_form.password.data == ADMIN_PASSWORD:
+        if request.method == 'POST':
+            username = request.form.get('username')
+            password = request.form.get('password')
+            
+            if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
                 session['admin_logged_in'] = True
                 flash('관리자로 로그인되었습니다.', 'success')
                 return redirect(url_for('admin'))
             else:
                 flash('아이디 또는 비밀번호가 올바르지 않습니다.', 'error')
         
-        return render_template('admin_login.html', form=login_form)
+        return render_template('admin_login.html')
     
     # 관리자 로그인 후
-    if leader_form.validate_on_submit():
-        team = Team.query.filter_by(name=leader_form.team_name.data).first()
+    if request.method == 'POST' and 'leader_update' in request.form:
+        team_name = request.form.get('leader_team_name')
+        leader_name = request.form.get('leader_name')
+        
+        team = Team.query.filter_by(name=team_name).first()
         if team:
-            team.leader_name = leader_form.leader_name.data
+            team.leader_name = leader_name
             db.session.commit()
             flash('조장 정보가 업데이트되었습니다.', 'success')
             return redirect(url_for('admin'))
@@ -223,7 +233,11 @@ def admin():
     all_teams_info = []
     for team in teams:
         approved_purchases = Purchase.query.filter_by(team_id=team.id, is_approved=True).all()
+        approved_multi_purchases = MultiPurchase.query.filter_by(team_id=team.id, is_approved=True).all()
+        
+        # 일반 구매내역과 다중 구매내역 모두 포함
         total_spent = sum(p.estimated_cost for p in approved_purchases)
+        total_spent += sum(mp.total_cost for mp in approved_multi_purchases)
         
         all_teams_info.append({
             'team_name': team.name,
@@ -237,6 +251,7 @@ def admin():
     
     # 승인 대기 중인 구매내역
     pending_purchases = Purchase.query.filter_by(is_approved=False).all()
+    pending_multi_purchases = MultiPurchase.query.filter_by(is_approved=False).all()
     
     # 기타 구매 요청
     other_requests = OtherRequest.query.all()
@@ -244,19 +259,19 @@ def admin():
     # 모든 구매내역 (일반)
     all_purchases = Purchase.query.order_by(Purchase.created_at.desc()).all()
     
-    # 다중 품목 구매내역 (현재는 없음)
-    all_multi_purchases = []
+    # 다중 품목 구매내역
+    all_multi_purchases = MultiPurchase.query.order_by(MultiPurchase.created_at.desc()).all()
     
     # 전체 예산 통계 계산
-    total_budget = sum(team['total_budget'] for team in all_teams_info)
-    total_spent = sum(team['total_spent'] for team in all_teams_info)
-    total_remaining = sum(team['remaining'] for team in all_teams_info)
+    total_budget = sum(team['total_budget'] for team in all_teams_info) if all_teams_info else 0
+    total_spent = sum(team['total_spent'] for team in all_teams_info) if all_teams_info else 0
+    total_remaining = sum(team['remaining'] for team in all_teams_info) if all_teams_info else 0
     
     return render_template('admin.html', 
-                         leader_form=leader_form,
                          teams=teams,
                          all_teams_info=all_teams_info,
                          pending_purchases=pending_purchases,
+                         pending_multi_purchases=pending_multi_purchases,
                          other_requests=other_requests,
                          all_purchases=all_purchases,
                          all_multi_purchases=all_multi_purchases,
@@ -270,8 +285,30 @@ def approve_purchase(purchase_id):
         return redirect(url_for('admin'))
     
     purchase = Purchase.query.get_or_404(purchase_id)
+    budget_type = request.form.get('budget_type')
+    
+    if not budget_type:
+        flash('예산 유형을 선택해주세요.', 'error')
+        return redirect(url_for('admin'))
+    
+    # 예산 차감
+    team = purchase.team
+    if budget_type == 'department':
+        if team.department_budget >= purchase.estimated_cost:
+            team.department_budget -= purchase.estimated_cost
+            purchase.budget_type = 'department'
+        else:
+            flash('학과지원사업 예산이 부족합니다.', 'error')
+            return redirect(url_for('admin'))
+    elif budget_type == 'student':
+        if team.student_budget >= purchase.estimated_cost:
+            team.student_budget -= purchase.estimated_cost
+            purchase.budget_type = 'student'
+        else:
+            flash('학생지원사업 예산이 부족합니다.', 'error')
+            return redirect(url_for('admin'))
+    
     purchase.is_approved = True
-    purchase.budget_type = request.form.get('budget_type', 'department')
     db.session.commit()
     flash('구매내역이 승인되었습니다.', 'success')
     return redirect(url_for('admin'))
@@ -282,10 +319,21 @@ def cancel_approval(purchase_id):
         return redirect(url_for('admin'))
     
     purchase = Purchase.query.get_or_404(purchase_id)
+    if not purchase.is_approved:
+        flash('이미 승인되지 않은 구매내역입니다.', 'error')
+        return redirect(url_for('admin'))
+    
+    # 예산 복구
+    team = purchase.team
+    if purchase.budget_type == 'department':
+        team.department_budget += purchase.estimated_cost
+    elif purchase.budget_type == 'student':
+        team.student_budget += purchase.estimated_cost
+    
     purchase.is_approved = False
     purchase.budget_type = None
     db.session.commit()
-    flash('승인이 취소되었습니다.', 'info')
+    flash('구매 승인이 취소되었습니다.', 'success')
     return redirect(url_for('admin'))
 
 @app.route('/delete_purchase/<int:purchase_id>')
@@ -294,12 +342,100 @@ def delete_purchase(purchase_id):
         return redirect(url_for('admin'))
     
     purchase = Purchase.query.get_or_404(purchase_id)
+    
+    # 승인된 구매내역인 경우 예산 복구
+    if purchase.is_approved:
+        team = purchase.team
+        if purchase.budget_type == 'department':
+            team.department_budget += purchase.estimated_cost
+        elif purchase.budget_type == 'student':
+            team.student_budget += purchase.estimated_cost
+    
+    # 구매내역 삭제
     db.session.delete(purchase)
     db.session.commit()
-    flash('구매내역이 삭제되었습니다.', 'info')
+    flash('구매내역이 삭제되었습니다.', 'success')
     return redirect(url_for('admin'))
 
-@app.route('/download_file/<filename>')
+@app.route('/approve_multi_purchase/<int:multi_purchase_id>', methods=['POST'])
+def approve_multi_purchase(multi_purchase_id):
+    if 'admin_logged_in' not in session:
+        return redirect(url_for('admin'))
+    
+    multi_purchase = MultiPurchase.query.get_or_404(multi_purchase_id)
+    budget_type = request.form.get('budget_type')
+    
+    if not budget_type:
+        flash('예산 유형을 선택해주세요.', 'error')
+        return redirect(url_for('admin'))
+    
+    # 예산 차감
+    team = multi_purchase.team
+    if budget_type == 'department':
+        if team.department_budget >= multi_purchase.total_cost:
+            team.department_budget -= multi_purchase.total_cost
+            multi_purchase.budget_type = 'department'
+        else:
+            flash('학과지원사업 예산이 부족합니다.', 'error')
+            return redirect(url_for('admin'))
+    elif budget_type == 'student':
+        if team.student_budget >= multi_purchase.total_cost:
+            team.student_budget -= multi_purchase.total_cost
+            multi_purchase.budget_type = 'student'
+        else:
+            flash('학생지원사업 예산이 부족합니다.', 'error')
+            return redirect(url_for('admin'))
+    
+    multi_purchase.is_approved = True
+    db.session.commit()
+    flash('다중 품목 구매내역이 승인되었습니다.', 'success')
+    return redirect(url_for('admin'))
+
+@app.route('/cancel_multi_approval/<int:multi_purchase_id>')
+def cancel_multi_approval(multi_purchase_id):
+    if 'admin_logged_in' not in session:
+        return redirect(url_for('admin'))
+    
+    multi_purchase = MultiPurchase.query.get_or_404(multi_purchase_id)
+    if not multi_purchase.is_approved:
+        flash('이미 승인되지 않은 구매내역입니다.', 'error')
+        return redirect(url_for('admin'))
+    
+    # 예산 복구
+    team = multi_purchase.team
+    if multi_purchase.budget_type == 'department':
+        team.department_budget += multi_purchase.total_cost
+    elif multi_purchase.budget_type == 'student':
+        team.student_budget += multi_purchase.total_cost
+    
+    multi_purchase.is_approved = False
+    multi_purchase.budget_type = None
+    db.session.commit()
+    flash('다중 품목 구매 승인이 취소되었습니다.', 'success')
+    return redirect(url_for('admin'))
+
+@app.route('/delete_multi_purchase/<int:multi_purchase_id>')
+def delete_multi_purchase(multi_purchase_id):
+    if 'admin_logged_in' not in session:
+        return redirect(url_for('admin'))
+    
+    multi_purchase = MultiPurchase.query.get_or_404(multi_purchase_id)
+    
+    # 승인된 구매내역인 경우 예산 복구
+    if multi_purchase.is_approved:
+        team = multi_purchase.team
+        if multi_purchase.budget_type == 'department':
+            team.department_budget += multi_purchase.total_cost
+        elif multi_purchase.budget_type == 'student':
+            team.student_budget += multi_purchase.total_cost
+    
+    # 구매내역 삭제 (관련 품목들도 자동 삭제됨)
+    db.session.delete(multi_purchase)
+    db.session.commit()
+    flash('다중 품목 구매내역이 삭제되었습니다.', 'success')
+    return redirect(url_for('admin'))
+
+@app.route('/download/<filename>')
 def download_file(filename):
     if 'admin_logged_in' not in session:
         return redirect(url_for('admin'))
@@ -315,21 +451,6 @@ def download_file(filename):
         flash('파일 다운로드 중 오류가 발생했습니다.', 'error')
         return redirect(url_for('admin'))
 
-# 다중 품목 관련 더미 라우트들 (현재는 사용하지 않음)
-@app.route('/approve_multi_purchase/<int:multi_purchase_id>', methods=['POST'])
-def approve_multi_purchase(multi_purchase_id):
-    flash('다중 품목 기능은 현재 사용할 수 없습니다.', 'info')
-    return redirect(url_for('admin'))
-
-@app.route('/cancel_multi_approval/<int:multi_purchase_id>')
-def cancel_multi_approval(multi_purchase_id):
-    flash('다중 품목 기능은 현재 사용할 수 없습니다.', 'info')
-    return redirect(url_for('admin'))
-
-@app.route('/delete_multi_purchase/<int:multi_purchase_id>')
-def delete_multi_purchase(multi_purchase_id):
-    flash('다중 품목 기능은 현재 사용할 수 없습니다.', 'info')
-    return redirect(url_for('admin'))
 
 @app.route('/logout')
 def logout():
@@ -369,6 +490,24 @@ def export_excel():
             '승인됨' if purchase.is_approved else '대기중',
             purchase.created_at.strftime('%Y-%m-%d %H:%M')
         ])
+    
+    # 다중 품목 구매내역
+    multi_purchases = MultiPurchase.query.order_by(MultiPurchase.created_at.desc()).all()
+    for multi_purchase in multi_purchases:
+        # 각 품목별로 행 생성
+        for item in multi_purchase.items:
+            writer.writerow([
+                f"M{multi_purchase.id}-{item.id}",
+                multi_purchase.team.name,
+                multi_purchase.team.leader_name or '미설정',
+                item.item_name,
+                item.quantity,
+                item.unit_price * item.quantity,
+                multi_purchase.store,
+                '학과지원사업' if multi_purchase.budget_type == 'department' else '학생지원사업' if multi_purchase.budget_type == 'student' else '미선택',
+                '승인됨' if multi_purchase.is_approved else '대기중',
+                multi_purchase.created_at.strftime('%Y-%m-%d %H:%M')
+            ])
     
     # CSV 파일로 응답
     output.seek(0)
@@ -412,6 +551,24 @@ def export_team_excel(team_id):
             '승인됨' if purchase.is_approved else '대기중',
             purchase.created_at.strftime('%Y-%m-%d %H:%M')
         ])
+    
+    # 해당 조의 다중 품목 구매내역
+    multi_purchases = MultiPurchase.query.filter_by(team_id=team_id).order_by(MultiPurchase.created_at.desc()).all()
+    for multi_purchase in multi_purchases:
+        # 각 품목별로 행 생성
+        for item in multi_purchase.items:
+            writer.writerow([
+                f"M{multi_purchase.id}-{item.id}",
+                multi_purchase.team.name,
+                multi_purchase.team.leader_name or '미설정',
+                item.item_name,
+                item.quantity,
+                item.unit_price * item.quantity,
+                multi_purchase.store,
+                '학과지원사업' if multi_purchase.budget_type == 'department' else '학생지원사업' if multi_purchase.budget_type == 'student' else '미선택',
+                '승인됨' if multi_purchase.is_approved else '대기중',
+                multi_purchase.created_at.strftime('%Y-%m-%d %H:%M')
+            ])
     
     # CSV 파일로 응답
     output.seek(0)
