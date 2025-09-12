@@ -968,7 +968,11 @@ def init_db():
                 print(f"기존 팀 개수: {existing_teams}")
                 for team in Team.query.all():
                     print(f"  - {team.name}: 조장={team.leader_name or '미설정'}")
-                return  # 기존 데이터가 있으면 아무것도 하지 않음
+                
+                # 기존 데이터가 있어도 JSON 백업 실행
+                print("🔄 기존 데이터 JSON 백업 실행...")
+                backup_to_json()
+                return
             
             print("📝 새로운 데이터베이스 파일 생성...")
             
@@ -1000,6 +1004,7 @@ def init_db():
             print("🎉 데이터베이스 초기화 완료!")
             
             # JSON 백업 실행
+            print("🔄 초기화 후 JSON 백업 실행...")
             backup_to_json()
             
         except Exception as e:
@@ -1007,23 +1012,7 @@ def init_db():
             # 오류 발생 시에도 기존 데이터 보존
             print("오류 발생했지만 기존 데이터는 보존됩니다.")
 
-@app.route('/view_data')
-def view_data():
-    """데이터베이스 보기"""
-    if 'admin_logged_in' not in session:
-        return redirect(url_for('admin'))
-    
-    # 모든 데이터 로드
-    teams = Team.query.all()
-    purchases = Purchase.query.all()
-    multi_purchases = MultiPurchase.query.all()
-    other_requests = OtherRequest.query.all()
-    
-    return render_template('view_data.html', 
-                         teams=teams,
-                         purchases=purchases,
-                         multi_purchases=multi_purchases,
-                         other_requests=other_requests)
+# view_data 라우트는 이미 정의되어 있음 (중복 제거)
 
 @app.route('/reset_database', methods=['POST'])
 def reset_database():
