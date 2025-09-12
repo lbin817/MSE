@@ -587,8 +587,9 @@ def export_excel():
     if 'admin_logged_in' not in session:
         return redirect(url_for('admin'))
     
-    # Tab 구분 텍스트 파일 생성
-    txt_content = ""
+    try:
+        # Tab 구분 텍스트 파일 생성
+        txt_content = ""
     
     # 헤더 작성
     headers = ['ID', '조 번호', '조장', '품목명', '수량', '예상비용', '쇼핑몰', '예산유형', '상태', '요청일시', '견적서첨부']
@@ -605,10 +606,10 @@ def export_excel():
             str(purchase.quantity),
             str(purchase.estimated_cost),
             purchase.store,
-            '학과지원사업' if purchase.budget_type == 'department' else '학생지원사업' if purchase.budget_type == 'student' else '미선택',
+            '학과지원사업' if getattr(purchase, 'budget_type', None) == 'department' else '학생지원사업' if getattr(purchase, 'budget_type', None) == 'student' else '미선택',
             '승인됨' if purchase.is_approved else '대기중',
             purchase.created_at.strftime('%Y-%m-%d %H:%M'),
-            '있음' if purchase.attachment_filename else '없음'
+            '있음' if getattr(purchase, 'attachment_filename', None) else '없음'
         ]
         txt_content += '\t'.join(row) + '\n'
     
@@ -628,16 +629,21 @@ def export_excel():
                 '학과지원사업' if multi_purchase.budget_type == 'department' else '학생지원사업' if multi_purchase.budget_type == 'student' else '미선택',
                 '승인됨' if multi_purchase.is_approved else '대기중',
                 multi_purchase.created_at.strftime('%Y-%m-%d %H:%M'),
-                '있음' if multi_purchase.attachment_filename else '없음'
+                '있음' if getattr(multi_purchase, 'attachment_filename', None) else '없음'
             ]
             txt_content += '\t'.join(row) + '\n'
     
-    # 텍스트 파일로 응답
-    response = make_response(txt_content.encode('utf-8'))
-    response.headers['Content-Type'] = 'text/plain; charset=utf-8'
-    response.headers['Content-Disposition'] = f'attachment; filename=전체_구매내역_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt'
-    
-    return response
+        # 텍스트 파일로 응답
+        response = make_response(txt_content.encode('utf-8'))
+        response.headers['Content-Type'] = 'text/plain; charset=utf-8'
+        response.headers['Content-Disposition'] = f'attachment; filename=전체_구매내역_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt'
+        
+        return response
+        
+    except Exception as e:
+        flash('파일 다운로드 중 오류가 발생했습니다.', 'error')
+        print(f"❌ 다운로드 오류: {e}")
+        return redirect(url_for('admin'))
 
 @app.route('/export_team_excel/<int:team_id>')
 def export_team_excel(team_id):
@@ -645,10 +651,11 @@ def export_team_excel(team_id):
     if 'admin_logged_in' not in session:
         return redirect(url_for('admin'))
     
-    team = Team.query.get_or_404(team_id)
-    
-    # Tab 구분 텍스트 파일 생성
-    txt_content = ""
+    try:
+        team = Team.query.get_or_404(team_id)
+        
+        # Tab 구분 텍스트 파일 생성
+        txt_content = ""
     
     # 헤더 작성
     headers = ['ID', '조 번호', '조장', '품목명', '수량', '예상비용', '쇼핑몰', '예산유형', '상태', '요청일시', '견적서첨부']
@@ -665,10 +672,10 @@ def export_team_excel(team_id):
             str(purchase.quantity),
             str(purchase.estimated_cost),
             purchase.store,
-            '학과지원사업' if purchase.budget_type == 'department' else '학생지원사업' if purchase.budget_type == 'student' else '미선택',
+            '학과지원사업' if getattr(purchase, 'budget_type', None) == 'department' else '학생지원사업' if getattr(purchase, 'budget_type', None) == 'student' else '미선택',
             '승인됨' if purchase.is_approved else '대기중',
             purchase.created_at.strftime('%Y-%m-%d %H:%M'),
-            '있음' if purchase.attachment_filename else '없음'
+            '있음' if getattr(purchase, 'attachment_filename', None) else '없음'
         ]
         txt_content += '\t'.join(row) + '\n'
     
@@ -688,16 +695,21 @@ def export_team_excel(team_id):
                 '학과지원사업' if multi_purchase.budget_type == 'department' else '학생지원사업' if multi_purchase.budget_type == 'student' else '미선택',
                 '승인됨' if multi_purchase.is_approved else '대기중',
                 multi_purchase.created_at.strftime('%Y-%m-%d %H:%M'),
-                '있음' if multi_purchase.attachment_filename else '없음'
+                '있음' if getattr(multi_purchase, 'attachment_filename', None) else '없음'
             ]
             txt_content += '\t'.join(row) + '\n'
     
-    # 텍스트 파일로 응답
-    response = make_response(txt_content.encode('utf-8'))
-    response.headers['Content-Type'] = 'text/plain; charset=utf-8'
-    response.headers['Content-Disposition'] = f'attachment; filename={team.name}_구매내역_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt'
-    
-    return response
+        # 텍스트 파일로 응답
+        response = make_response(txt_content.encode('utf-8'))
+        response.headers['Content-Type'] = 'text/plain; charset=utf-8'
+        response.headers['Content-Disposition'] = f'attachment; filename={team.name}_구매내역_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt'
+        
+        return response
+        
+    except Exception as e:
+        flash('파일 다운로드 중 오류가 발생했습니다.', 'error')
+        print(f"❌ 조별 다운로드 오류: {e}")
+        return redirect(url_for('admin'))
 
 @app.route('/logout')
 def logout():
