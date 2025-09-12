@@ -465,9 +465,9 @@ def export_excel():
         return redirect(url_for('admin'))
     
     # CSV 데이터 생성 (UTF-8 BOM 포함)
-    output = io.BytesIO()
-    output.write('\ufeff'.encode('utf-8'))  # UTF-8 BOM 추가
-    writer = csv.writer(io.TextIOWrapper(output, encoding='utf-8'))
+    output = io.StringIO()
+    output.write('\ufeff')  # UTF-8 BOM 추가
+    writer = csv.writer(output)
     
     # 헤더 작성
     writer.writerow([
@@ -511,7 +511,7 @@ def export_excel():
     
     # CSV 파일로 응답
     output.seek(0)
-    response = make_response(output.getvalue())
+    response = make_response(output.getvalue().encode('utf-8-sig'))
     response.headers['Content-Type'] = 'text/csv; charset=utf-8-sig'
     response.headers['Content-Disposition'] = f'attachment; filename=purchase_history_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
     
@@ -526,9 +526,9 @@ def export_team_excel(team_id):
     team = Team.query.get_or_404(team_id)
     
     # CSV 데이터 생성 (UTF-8 BOM 포함)
-    output = io.BytesIO()
-    output.write('\ufeff'.encode('utf-8'))  # UTF-8 BOM 추가
-    writer = csv.writer(io.TextIOWrapper(output, encoding='utf-8'))
+    output = io.StringIO()
+    output.write('\ufeff')  # UTF-8 BOM 추가
+    writer = csv.writer(output)
     
     # 헤더 작성
     writer.writerow([
@@ -572,7 +572,7 @@ def export_team_excel(team_id):
     
     # CSV 파일로 응답
     output.seek(0)
-    response = make_response(output.getvalue())
+    response = make_response(output.getvalue().encode('utf-8-sig'))
     response.headers['Content-Type'] = 'text/csv; charset=utf-8-sig'
     response.headers['Content-Disposition'] = f'attachment; filename={team.name}_purchase_history_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
     
@@ -581,37 +581,82 @@ def export_team_excel(team_id):
 def init_db():
     """데이터베이스 테이블 생성 및 초기 데이터 설정 (기존 데이터 보존)"""
     with app.app_context():
-        # 테이블만 생성 (기존 데이터는 보존)
-        db.create_all()
-        
-        # 초기 조 데이터 설정 (없는 조만 추가)
-        teams_data = [
-            # 월요일 조들
-            {'name': '월요일 1조', 'department_budget': 600000, 'student_budget': 500000},
-            {'name': '월요일 2조', 'department_budget': 700000, 'student_budget': 500000},
-            {'name': '월요일 3조', 'department_budget': 600000, 'student_budget': 500000},
-            {'name': '월요일 4조', 'department_budget': 700000, 'student_budget': 500000},
-            # 화요일 조들
-            {'name': '화요일 1조', 'department_budget': 600000, 'student_budget': 500000},
-            {'name': '화요일 2조', 'department_budget': 700000, 'student_budget': 500000},
-            {'name': '화요일 3조', 'department_budget': 600000, 'student_budget': 500000},
-            {'name': '화요일 4조', 'department_budget': 700000, 'student_budget': 500000},
-            {'name': '화요일 5조', 'department_budget': 600000, 'student_budget': 500000},
-            {'name': '화요일 6조', 'department_budget': 700000, 'student_budget': 500000},
-            {'name': '화요일 7조', 'department_budget': 600000, 'student_budget': 500000},
-        ]
-        
-        # 기존에 없는 조만 추가 (기존 데이터 보존)
-        for team_data in teams_data:
-            existing_team = Team.query.filter_by(name=team_data['name']).first()
-            if not existing_team:
-                team = Team(**team_data)
-                db.session.add(team)
-                print(f"새로운 조 추가: {team_data['name']}")
-        
-        db.session.commit()
-        print("데이터베이스 테이블이 확인되었습니다. (기존 데이터 보존)")
+        try:
+            # 기존 데이터 확인
+            existing_teams_count = Team.query.count()
+            existing_purchases_count = Purchase.query.count()
+            existing_requests_count = OtherRequest.query.count()
+            
+            print(f"📊 기존 데이터 확인:")
+            print(f"   - 조: {existing_teams_count}개")
+            print(f"   - 구매내역: {existing_purchases_count}개")
+            print(f"   - 기타 요청: {existing_requests_count}개")
+            
+            # 테이블만 생성 (기존 데이터는 보존)
+            db.create_all()
+            
+            # 초기 조 데이터 설정 (없는 조만 추가)
+            teams_data = [
+                # 월요일 조들
+                {'name': '월요일 1조', 'department_budget': 600000, 'student_budget': 500000},
+                {'name': '월요일 2조', 'department_budget': 700000, 'student_budget': 500000},
+                {'name': '월요일 3조', 'department_budget': 600000, 'student_budget': 500000},
+                {'name': '월요일 4조', 'department_budget': 700000, 'student_budget': 500000},
+                # 화요일 조들
+                {'name': '화요일 1조', 'department_budget': 600000, 'student_budget': 500000},
+                {'name': '화요일 2조', 'department_budget': 700000, 'student_budget': 500000},
+                {'name': '화요일 3조', 'department_budget': 600000, 'student_budget': 500000},
+                {'name': '화요일 4조', 'department_budget': 700000, 'student_budget': 500000},
+                {'name': '화요일 5조', 'department_budget': 600000, 'student_budget': 500000},
+                {'name': '화요일 6조', 'department_budget': 700000, 'student_budget': 500000},
+                {'name': '화요일 7조', 'department_budget': 600000, 'student_budget': 500000},
+            ]
+            
+            # 기존에 없는 조만 추가 (기존 데이터 보존)
+            new_teams_added = 0
+            for team_data in teams_data:
+                existing_team = Team.query.filter_by(name=team_data['name']).first()
+                if not existing_team:
+                    team = Team(**team_data)
+                    db.session.add(team)
+                    new_teams_added += 1
+                    print(f"✅ 새로운 조 추가: {team_data['name']}")
+            
+            db.session.commit()
+            
+            if new_teams_added > 0:
+                print(f"🆕 {new_teams_added}개의 새로운 조가 추가되었습니다.")
+            else:
+                print("✅ 모든 조가 이미 존재합니다.")
+                
+            print("🔒 데이터베이스 테이블이 안전하게 확인되었습니다. (기존 데이터 보존)")
+            
+        except Exception as e:
+            print(f"❌ 데이터베이스 초기화 중 오류 발생: {e}")
+            print("🔄 기존 데이터를 보존하기 위해 계속 진행합니다.")
+            db.session.rollback()
 
 if __name__ == '__main__':
+    # 데이터베이스 초기화 (기존 데이터 보존)
     init_db()
-    app.run(debug=DEBUG, host=HOST, port=PORT, ssl_context='adhoc')
+    
+    print("=" * 60)
+    print("🎓 예산 관리 시스템 (Flask)이 시작되었습니다!")
+    print("=" * 60)
+    print(f"🌐 접속 주소: http://127.0.0.1:{PORT}")
+    print(f"🌐 또는: http://localhost:{PORT}")
+    print("=" * 60)
+    print("✅ 모든 기능이 사용 가능합니다!")
+    print("   - 구매내역 업로드")
+    print("   - 조별 잔여금액 확인")
+    print("   - 관리자 모드 (MSE3105 / KHU)")
+    print("=" * 60)
+    print("⚠️  주의: 데이터베이스는 자동으로 보존됩니다!")
+    print("=" * 60)
+    
+    # Render 배포를 위한 포트 설정
+    import os
+    port = int(os.environ.get('PORT', PORT))
+    # 운영 환경에서는 디버그 모드 비활성화
+    debug_mode = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
+    app.run(debug=debug_mode, host='0.0.0.0', port=port)
