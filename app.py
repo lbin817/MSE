@@ -532,25 +532,22 @@ def export_excel():
                 '요청일시': multi_purchase.created_at.strftime('%Y-%m-%d %H:%M')
             })
     
-    # CSV 생성 (UTF-8 BOM 포함) - 가장 간단한 방법
-    csv_content = ""
-    
-    # UTF-8 BOM 추가
-    csv_content += '\ufeff'
+    # Tab 구분 텍스트 파일 생성 (UTF-8)
+    txt_content = ""
     
     # 헤더 작성
     if data:
         headers = list(data[0].keys())
-        csv_content += ','.join(f'"{h}"' for h in headers) + '\n'
+        txt_content += '\t'.join(headers) + '\n'
         
         # 데이터 작성
         for row in data:
-            csv_content += ','.join(f'"{str(row[header])}"' for header in headers) + '\n'
+            txt_content += '\t'.join(str(row[header]) for header in headers) + '\n'
     
     # 응답 생성
-    response = make_response(csv_content.encode('utf-8-sig'))
-    response.headers['Content-Type'] = 'text/csv; charset=utf-8-sig'
-    response.headers['Content-Disposition'] = f'attachment; filename=purchase_history_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+    response = make_response(txt_content.encode('utf-8'))
+    response.headers['Content-Type'] = 'text/plain; charset=utf-8'
+    response.headers['Content-Disposition'] = f'attachment; filename=전체_구매내역_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt'
     
     return response
 
@@ -598,25 +595,22 @@ def export_team_excel(team_id):
                 '요청일시': multi_purchase.created_at.strftime('%Y-%m-%d %H:%M')
             })
     
-    # CSV 생성 (UTF-8 BOM 포함) - 가장 간단한 방법
-    csv_content = ""
-    
-    # UTF-8 BOM 추가
-    csv_content += '\ufeff'
+    # Tab 구분 텍스트 파일 생성 (UTF-8)
+    txt_content = ""
     
     # 헤더 작성
     if data:
         headers = list(data[0].keys())
-        csv_content += ','.join(f'"{h}"' for h in headers) + '\n'
+        txt_content += '\t'.join(headers) + '\n'
         
         # 데이터 작성
         for row in data:
-            csv_content += ','.join(f'"{str(row[header])}"' for header in headers) + '\n'
+            txt_content += '\t'.join(str(row[header]) for header in headers) + '\n'
     
     # 응답 생성
-    response = make_response(csv_content.encode('utf-8-sig'))
-    response.headers['Content-Type'] = 'text/csv; charset=utf-8-sig'
-    response.headers['Content-Disposition'] = f'attachment; filename={team.name}_purchase_history_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+    response = make_response(txt_content.encode('utf-8'))
+    response.headers['Content-Type'] = 'text/plain; charset=utf-8'
+    response.headers['Content-Disposition'] = f'attachment; filename={team.name}_구매내역_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt'
     
     return response
 

@@ -581,57 +581,55 @@ def export_excel():
     if 'admin_logged_in' not in session:
         return redirect(url_for('admin'))
     
-    # CSV 데이터 생성
-    output = io.StringIO()
-    writer = csv.writer(output)
+    # Tab 구분 텍스트 파일 생성
+    txt_content = ""
     
     # 헤더 작성
-    writer.writerow([
-        'ID', '조 번호', '조장', '품목명', '수량', '예상비용', '쇼핑몰', 
-        '예산유형', '상태', '요청일시', '견적서첨부'
-    ])
+    headers = ['ID', '조 번호', '조장', '품목명', '수량', '예상비용', '쇼핑몰', '예산유형', '상태', '요청일시', '견적서첨부']
+    txt_content += '\t'.join(headers) + '\n'
     
     # 일반 구매내역
     purchases = Purchase.query.order_by(Purchase.created_at.desc()).all()
     for purchase in purchases:
-        writer.writerow([
-            purchase.id,
+        row = [
+            str(purchase.id),
             purchase.team.name,
             purchase.team.leader_name or '미설정',
             purchase.item_name,
-            purchase.quantity,
-            purchase.estimated_cost,
+            str(purchase.quantity),
+            str(purchase.estimated_cost),
             purchase.store,
             '학과지원사업' if purchase.budget_type == 'department' else '학생지원사업' if purchase.budget_type == 'student' else '미선택',
             '승인됨' if purchase.is_approved else '대기중',
             purchase.created_at.strftime('%Y-%m-%d %H:%M'),
             '있음' if purchase.attachment_filename else '없음'
-        ])
+        ]
+        txt_content += '\t'.join(row) + '\n'
     
     # 다중 품목 구매내역
     multi_purchases = MultiPurchase.query.order_by(MultiPurchase.created_at.desc()).all()
     for multi_purchase in multi_purchases:
         # 각 품목별로 행 생성
         for item in multi_purchase.items:
-            writer.writerow([
+            row = [
                 f"M{multi_purchase.id}-{item.id}",
                 multi_purchase.team.name,
                 multi_purchase.team.leader_name or '미설정',
                 item.item_name,
-                item.quantity,
-                item.unit_price * item.quantity,
+                str(item.quantity),
+                str(item.unit_price * item.quantity),
                 multi_purchase.store,
                 '학과지원사업' if multi_purchase.budget_type == 'department' else '학생지원사업' if multi_purchase.budget_type == 'student' else '미선택',
                 '승인됨' if multi_purchase.is_approved else '대기중',
                 multi_purchase.created_at.strftime('%Y-%m-%d %H:%M'),
                 '있음' if multi_purchase.attachment_filename else '없음'
-            ])
+            ]
+            txt_content += '\t'.join(row) + '\n'
     
-    # CSV 파일로 응답
-    output.seek(0)
-    response = make_response(output.getvalue())
-    response.headers['Content-Type'] = 'text/csv; charset=utf-8-sig'
-    response.headers['Content-Disposition'] = f'attachment; filename=purchase_history_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+    # 텍스트 파일로 응답
+    response = make_response(txt_content.encode('utf-8'))
+    response.headers['Content-Type'] = 'text/plain; charset=utf-8'
+    response.headers['Content-Disposition'] = f'attachment; filename=전체_구매내역_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt'
     
     return response
 
@@ -643,57 +641,55 @@ def export_team_excel(team_id):
     
     team = Team.query.get_or_404(team_id)
     
-    # CSV 데이터 생성
-    output = io.StringIO()
-    writer = csv.writer(output)
+    # Tab 구분 텍스트 파일 생성
+    txt_content = ""
     
     # 헤더 작성
-    writer.writerow([
-        'ID', '조 번호', '조장', '품목명', '수량', '예상비용', '쇼핑몰', 
-        '예산유형', '상태', '요청일시', '견적서첨부'
-    ])
+    headers = ['ID', '조 번호', '조장', '품목명', '수량', '예상비용', '쇼핑몰', '예산유형', '상태', '요청일시', '견적서첨부']
+    txt_content += '\t'.join(headers) + '\n'
     
     # 해당 조의 일반 구매내역
     purchases = Purchase.query.filter_by(team_id=team_id).order_by(Purchase.created_at.desc()).all()
     for purchase in purchases:
-        writer.writerow([
-            purchase.id,
+        row = [
+            str(purchase.id),
             purchase.team.name,
             purchase.team.leader_name or '미설정',
             purchase.item_name,
-            purchase.quantity,
-            purchase.estimated_cost,
+            str(purchase.quantity),
+            str(purchase.estimated_cost),
             purchase.store,
             '학과지원사업' if purchase.budget_type == 'department' else '학생지원사업' if purchase.budget_type == 'student' else '미선택',
             '승인됨' if purchase.is_approved else '대기중',
             purchase.created_at.strftime('%Y-%m-%d %H:%M'),
             '있음' if purchase.attachment_filename else '없음'
-        ])
+        ]
+        txt_content += '\t'.join(row) + '\n'
     
     # 해당 조의 다중 품목 구매내역
     multi_purchases = MultiPurchase.query.filter_by(team_id=team_id).order_by(MultiPurchase.created_at.desc()).all()
     for multi_purchase in multi_purchases:
         # 각 품목별로 행 생성
         for item in multi_purchase.items:
-            writer.writerow([
+            row = [
                 f"M{multi_purchase.id}-{item.id}",
                 multi_purchase.team.name,
                 multi_purchase.team.leader_name or '미설정',
                 item.item_name,
-                item.quantity,
-                item.unit_price * item.quantity,
+                str(item.quantity),
+                str(item.unit_price * item.quantity),
                 multi_purchase.store,
                 '학과지원사업' if multi_purchase.budget_type == 'department' else '학생지원사업' if multi_purchase.budget_type == 'student' else '미선택',
                 '승인됨' if multi_purchase.is_approved else '대기중',
                 multi_purchase.created_at.strftime('%Y-%m-%d %H:%M'),
                 '있음' if multi_purchase.attachment_filename else '없음'
-            ])
+            ]
+            txt_content += '\t'.join(row) + '\n'
     
-    # CSV 파일로 응답
-    output.seek(0)
-    response = make_response(output.getvalue())
-    response.headers['Content-Type'] = 'text/csv; charset=utf-8-sig'
-    response.headers['Content-Disposition'] = f'attachment; filename={team.name}_purchase_history_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
+    # 텍스트 파일로 응답
+    response = make_response(txt_content.encode('utf-8'))
+    response.headers['Content-Type'] = 'text/plain; charset=utf-8'
+    response.headers['Content-Disposition'] = f'attachment; filename={team.name}_구매내역_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt'
     
     return response
 
