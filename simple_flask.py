@@ -249,7 +249,10 @@ def backup_to_json():
         # GitHub에도 업로드 (토큰이 있을 때만)
         print("🔄 GitHub에 백업 업로드...")
         github_token = os.environ.get('GITHUB_TOKEN')
+        print(f"🔑 GitHub 토큰 확인: {'있음' if github_token else '없음'}")
         if github_token:
+            print(f"🔑 토큰 길이: {len(github_token)}")
+            print(f"🔑 토큰 시작: {github_token[:10]}...")
             for filename, data in [('teams.json', teams_data), ('purchases.json', purchases_data), 
                                   ('multi_purchases.json', multi_purchases_data), ('other_requests.json', other_requests_data)]:
                 content = json.dumps(data, ensure_ascii=False, indent=2)
