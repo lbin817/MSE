@@ -956,6 +956,79 @@ def migrate_existing_data():
             # 오류 발생 시에도 데이터를 보존하고 계속 진행
             print("마이그레이션을 건너뛰고 계속 진행합니다.")
 
+def restore_from_json():
+    """JSON 백업 파일에서 데이터 복원"""
+    try:
+        print("🔄 JSON 백업에서 데이터 복원 시도...")
+        
+        # 팀 데이터 복원
+        teams_file = os.path.join(JSON_BACKUP_DIR, 'teams.json')
+        if os.path.exists(teams_file):
+            with open(teams_file, 'r', encoding='utf-8') as f:
+                teams_data = json.load(f)
+            
+            for team_data in teams_data.get('teams', []):
+                existing_team = Team.query.get(team_data['id'])
+                if existing_team:
+                    # 기존 팀 업데이트
+                    existing_team.leader_name = team_data['leader_name']
+                    existing_team.department_budget = team_data['department_budget']
+                    existing_team.student_budget = team_data['student_budget']
+                    if hasattr(existing_team, 'original_department_budget'):
+                        existing_team.original_department_budget = team_data.get('original_department_budget', team_data['department_budget'])
+                    if hasattr(existing_team, 'original_student_budget'):
+                        existing_team.original_student_budget = team_data.get('original_student_budget', team_data['student_budget'])
+                else:
+                    # 새 팀 생성
+                    team = Team(
+                        id=team_data['id'],
+                        name=team_data['name'],
+                        leader_name=team_data['leader_name'],
+                        department_budget=team_data['department_budget'],
+                        student_budget=team_data['student_budget']
+                    )
+                    if hasattr(team, 'original_department_budget'):
+                        team.original_department_budget = team_data.get('original_department_budget', team_data['department_budget'])
+                    if hasattr(team, 'original_student_budget'):
+                        team.original_student_budget = team_data.get('original_student_budget', team_data['student_budget'])
+                    db.session.add(team)
+            
+            db.session.commit()
+            print(f"✅ {len(teams_data.get('teams', []))}개 팀 데이터 복원 완료!")
+        
+        # 구매내역 복원
+        purchases_file = os.path.join(JSON_BACKUP_DIR, 'purchases.json')
+        if os.path.exists(purchases_file):
+            with open(purchases_file, 'r', encoding='utf-8') as f:
+                purchases_data = json.load(f)
+            
+            for purchase_data in purchases_data.get('purchases', []):
+                existing_purchase = Purchase.query.get(purchase_data['id'])
+                if not existing_purchase:
+                    purchase = Purchase(
+                        id=purchase_data['id'],
+                        team_id=purchase_data['team_id'],
+                        item_name=purchase_data['item_name'],
+                        quantity=purchase_data['quantity'],
+                        estimated_cost=purchase_data['total_amount'],
+                        link=purchase_data.get('link', ''),
+                        store=purchase_data['store'],
+                        is_approved=purchase_data['is_approved'],
+                        budget_type=purchase_data.get('budget_type', 'department'),
+                        attachment_filename=purchase_data.get('attachment_filename'),
+                        request_date=datetime.strptime(purchase_data['request_date'], '%Y-%m-%d %H:%M:%S')
+                    )
+                    db.session.add(purchase)
+            
+            db.session.commit()
+            print(f"✅ {len(purchases_data.get('purchases', []))}개 구매내역 복원 완료!")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ JSON 복원 오류: {e}")
+        return False
+
 def init_db():
     """데이터베이스 초기화 (기존 데이터 절대 보존)"""
     with app.app_context():
@@ -978,6 +1051,9 @@ def init_db():
             
             # 2. 테이블 생성
             db.create_all()
+            
+            # 3. JSON 백업에서 데이터 복원 시도
+            restore_from_json()
             print("테이블 생성 완료")
             
             # 3. 초기 팀 데이터 생성 (새 데이터베이스일 때만)
