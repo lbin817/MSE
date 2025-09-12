@@ -390,7 +390,11 @@ def upload():
                 db.session.commit()
                 
                 # JSON 백업 실행
+                print("=" * 50)
+                print("🔄 구매내역 업로드 후 JSON 백업 시작!")
+                print("=" * 50)
                 backup_to_json()
+                print("=" * 50)
                 
                 flash('구매내역이 성공적으로 업로드되었습니다.', 'success')
                 return redirect(url_for('upload'))
