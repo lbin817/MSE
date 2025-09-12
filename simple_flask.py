@@ -1162,63 +1162,60 @@ def restore_from_json():
         return False
 
 def init_db():
-    """데이터베이스 초기화 (기존 데이터 절대 보존)"""
+    """데이터베이스 초기화 (GitHub 복원 우선, 실패 시 기존 데이터 유지)"""
     with app.app_context():
         try:
-            # 1. 기존 데이터베이스 파일이 있는지 확인
-            if os.path.exists('budget_management.db'):
-                print("✅ 기존 데이터베이스 파일 발견! 데이터를 보존합니다.")
-                # 기존 데이터 확인
-                existing_teams = Team.query.count()
-                print(f"기존 팀 개수: {existing_teams}")
+            print("📝 데이터베이스 초기화 시작...")
+            
+            # 1. 테이블 생성
+            db.create_all()
+            print("테이블 생성 완료")
+            
+            # 2. GitHub에서 데이터 복원 시도
+            print("🔄 GitHub에서 데이터 복원 시도...")
+            restore_success = restore_from_json()
+            
+            # 3. 복원 결과 확인
+            existing_teams = Team.query.count()
+            if existing_teams == 0:
+                print("⚠️ GitHub 복원 실패 - 초기 팀 데이터를 생성합니다.")
+                teams_data = [
+                    {'name': '월요일 1조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+                    {'name': '월요일 2조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
+                    {'name': '월요일 3조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+                    {'name': '월요일 4조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
+                    {'name': '화요일 1조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+                    {'name': '화요일 2조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
+                    {'name': '화요일 3조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+                    {'name': '화요일 4조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
+                    {'name': '화요일 5조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+                    {'name': '화요일 6조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
+                    {'name': '화요일 7조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
+                ]
+                
+                for team_data in teams_data:
+                    team = Team(**team_data)
+                    db.session.add(team)
+                db.session.commit()
+                print("초기 팀 데이터가 생성되었습니다.")
+            else:
+                print(f"✅ GitHub에서 {existing_teams}개 팀 데이터 복원 완료!")
+                # 복원된 팀 정보 출력
                 for team in Team.query.all():
                     print(f"  - {team.name}: 조장={team.leader_name or '미설정'}")
                 
-                # 기존 데이터가 있어도 JSON 백업 실행
-                print("🔄 기존 데이터 JSON 백업 실행...")
-                backup_to_json()
-                return
-            
-            print("📝 새로운 데이터베이스 파일 생성...")
-            
-            # 2. 테이블 생성
-            db.create_all()
-            
-            # 3. JSON 백업에서 데이터 복원 시도
-            restore_from_json()
-            print("테이블 생성 완료")
-            
-            # 3. 초기 팀 데이터 생성 (새 데이터베이스일 때만)
-            teams_data = [
-                {'name': '월요일 1조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
-                {'name': '월요일 2조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
-                {'name': '월요일 3조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
-                {'name': '월요일 4조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
-                {'name': '화요일 1조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
-                {'name': '화요일 2조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
-                {'name': '화요일 3조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
-                {'name': '화요일 4조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
-                {'name': '화요일 5조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
-                {'name': '화요일 6조', 'department_budget': 700000, 'student_budget': 500000, 'original_department_budget': 700000, 'original_student_budget': 500000},
-                {'name': '화요일 7조', 'department_budget': 600000, 'student_budget': 500000, 'original_department_budget': 600000, 'original_student_budget': 500000},
-            ]
-            
-            for team_data in teams_data:
-                team = Team(**team_data)
-                db.session.add(team)
-            db.session.commit()
-            print("초기 팀 데이터가 생성되었습니다.")
+                # 복원 성공 시 기존 데이터 유지 메시지
+                print("🎉 기존 데이터가 성공적으로 복원되었습니다!")
             
             print("🎉 데이터베이스 초기화 완료!")
             
-            # JSON 백업 실행
-            print("🔄 초기화 후 JSON 백업 실행...")
+            # 4. 현재 상태를 GitHub에 백업
+            print("🔄 현재 상태를 GitHub에 백업...")
             backup_to_json()
             
         except Exception as e:
             print(f"❌ 데이터베이스 초기화 중 오류: {e}")
-            # 오류 발생 시에도 기존 데이터 보존
-            print("오류 발생했지만 기존 데이터는 보존됩니다.")
+            print("오류 발생했지만 계속 진행합니다.")
 
 # view_data 라우트는 이미 정의되어 있음 (중복 제거)
 
