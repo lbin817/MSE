@@ -218,103 +218,72 @@ def check_balance():
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
-    teams = Team.query.all()
-    
-    if 'admin_logged_in' not in session:
+    try:
+        # 기본 데이터 로드
+        teams = Team.query.all()
+        
+        # 로그인 확인
+        if 'admin_logged_in' not in session:
+            if request.method == 'POST':
+                username = request.form.get('username')
+                password = request.form.get('password')
+                
+                if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+                    session['admin_logged_in'] = True
+                    flash('관리자로 로그인되었습니다.', 'success')
+                    return redirect(url_for('admin'))
+                else:
+                    flash('아이디 또는 비밀번호가 올바르지 않습니다.', 'error')
+            
+            return render_template('admin_login.html')
+        
+        # 관리자 로그인 후 - 폼 처리
         if request.method == 'POST':
-            username = request.form.get('username')
-            password = request.form.get('password')
-            
-            if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
-                session['admin_logged_in'] = True
-                flash('관리자로 로그인되었습니다.', 'success')
-                return redirect(url_for('admin'))
-            else:
-                flash('아이디 또는 비밀번호가 올바르지 않습니다.', 'error')
-        
-        return render_template('admin_login.html')
-    
-    # 관리자 로그인 후
-    if request.method == 'POST':
-        if 'leader_update' in request.form:
-            team_name = request.form.get('leader_team_name')
-            leader_name = request.form.get('leader_name')
-            
-            team = Team.query.filter_by(name=team_name).first()
-            if team:
-                team.leader_name = leader_name
-                db.session.commit()
-                flash('조장 정보가 업데이트되었습니다.', 'success')
-                return redirect(url_for('admin'))
-        
-        elif 'budget_update' in request.form:
-            team_name = request.form.get('budget_team_name')
-            department_budget = request.form.get('department_budget')
-            student_budget = request.form.get('student_budget')
-            
-            if department_budget and student_budget:
+            if 'leader_update' in request.form:
+                team_name = request.form.get('leader_team_name')
+                leader_name = request.form.get('leader_name')
+                
                 team = Team.query.filter_by(name=team_name).first()
                 if team:
-                    team.department_budget = int(department_budget)
-                    team.student_budget = int(student_budget)
-                    # original 필드가 없을 수 있으므로 안전하게 처리
-                    if hasattr(team, 'original_department_budget'):
-                        team.original_department_budget = int(department_budget)
-                    if hasattr(team, 'original_student_budget'):
-                        team.original_student_budget = int(student_budget)
+                    team.leader_name = leader_name
                     db.session.commit()
-                    flash('예산 정보가 업데이트되었습니다.', 'success')
+                    flash('조장 정보가 업데이트되었습니다.', 'success')
                     return redirect(url_for('admin'))
-    
-    # 모든 조의 잔여금액 정보
-    all_teams_info = []
-    for team in teams:
-        approved_purchases = Purchase.query.filter_by(team_id=team.id, is_approved=True).all()
-        approved_multi_purchases = MultiPurchase.query.filter_by(team_id=team.id, is_approved=True).all()
         
-        # 일반 구매내역과 다중 구매내역 모두 포함
-        total_spent = sum(p.estimated_cost for p in approved_purchases)
-        total_spent += sum(mp.total_cost for mp in approved_multi_purchases)
+        # 기본 데이터만 로드 (안전하게)
+        all_teams_info = []
+        for team in teams:
+            all_teams_info.append({
+                'team_name': team.name,
+                'leader_name': team.leader_name or '미설정',
+                'department_budget': team.department_budget or 0,
+                'student_budget': team.student_budget or 0,
+                'total_budget': (team.department_budget or 0) + (team.student_budget or 0),
+                'total_spent': 0,  # 임시로 0으로 설정
+                'remaining': (team.department_budget or 0) + (team.student_budget or 0)
+            })
         
-        all_teams_info.append({
-            'team_name': team.name,
-            'leader_name': team.leader_name,
-            'department_budget': team.department_budget,
-            'student_budget': team.student_budget,
-            'total_budget': team.department_budget + team.student_budget,
-            'total_spent': total_spent,
-            'remaining': (team.department_budget + team.student_budget) - total_spent
-        })
+        # 기본 통계
+        total_budget = sum(team['total_budget'] for team in all_teams_info) if all_teams_info else 0
+        total_spent = 0  # 임시로 0으로 설정
+        total_remaining = total_budget
+        
+        return render_template('admin.html', 
+                             teams=teams,
+                             all_teams_info=all_teams_info,
+                             pending_purchases=[],
+                             pending_multi_purchases=[],
+                             other_requests=[],
+                             all_purchases=[],
+                             all_multi_purchases=[],
+                             total_budget=total_budget,
+                             total_spent=total_spent,
+                             total_remaining=total_remaining)
     
-    # 승인 대기 중인 구매내역
-    pending_purchases = Purchase.query.filter_by(is_approved=False).all()
-    pending_multi_purchases = MultiPurchase.query.filter_by(is_approved=False).all()
-    
-    # 기타 구매 요청
-    other_requests = OtherRequest.query.all()
-    
-    # 모든 구매내역 (일반)
-    all_purchases = Purchase.query.order_by(Purchase.created_at.desc()).all()
-    
-    # 다중 품목 구매내역
-    all_multi_purchases = MultiPurchase.query.order_by(MultiPurchase.created_at.desc()).all()
-    
-    # 전체 예산 통계 계산
-    total_budget = sum(team['total_budget'] for team in all_teams_info) if all_teams_info else 0
-    total_spent = sum(team['total_spent'] for team in all_teams_info) if all_teams_info else 0
-    total_remaining = sum(team['remaining'] for team in all_teams_info) if all_teams_info else 0
-    
-    return render_template('admin.html', 
-                         teams=teams,
-                         all_teams_info=all_teams_info,
-                         pending_purchases=pending_purchases,
-                         pending_multi_purchases=pending_multi_purchases,
-                         other_requests=other_requests,
-                         all_purchases=all_purchases,
-                         all_multi_purchases=all_multi_purchases,
-                         total_budget=total_budget,
-                         total_spent=total_spent,
-                         total_remaining=total_remaining)
+    except Exception as e:
+        print(f"❌ admin 라우트 오류: {e}")
+        flash(f'관리자 모드 오류가 발생했습니다: {e}', 'error')
+        return render_template('admin_login.html')
 
 @app.route('/approve_purchase/<int:purchase_id>', methods=['POST'])
 def approve_purchase(purchase_id):
@@ -690,14 +659,27 @@ def init_db():
             try:
                 # 기존 조들에 original_department_budget, original_student_budget 필드 추가
                 teams = Team.query.all()
+                migration_count = 0
                 for team in teams:
-                    if not hasattr(team, 'original_department_budget') or team.original_department_budget == 0:
-                        team.original_department_budget = team.department_budget
-                        team.original_student_budget = team.student_budget
-                        print(f"🔄 조 예산 정보 마이그레이션: {team.name}")
+                    try:
+                        # original_department_budget 필드가 없거나 0인 경우
+                        if not hasattr(team, 'original_department_budget') or getattr(team, 'original_department_budget', 0) == 0:
+                            team.original_department_budget = team.department_budget or 0
+                            migration_count += 1
+                        
+                        # original_student_budget 필드가 없거나 0인 경우
+                        if not hasattr(team, 'original_student_budget') or getattr(team, 'original_student_budget', 0) == 0:
+                            team.original_student_budget = team.student_budget or 0
+                            migration_count += 1
+                    except Exception as team_error:
+                        print(f"⚠️  조 {team.name} 마이그레이션 중 오류: {team_error}")
+                        continue
                 
-                db.session.commit()
-                print("✅ 데이터베이스 마이그레이션이 완료되었습니다.")
+                if migration_count > 0:
+                    db.session.commit()
+                    print(f"✅ {migration_count}개 필드 마이그레이션이 완료되었습니다.")
+                else:
+                    print("✅ 마이그레이션이 필요하지 않습니다.")
             except Exception as e:
                 print(f"⚠️  마이그레이션 중 오류 발생 (정상): {e}")
                 db.session.rollback()
