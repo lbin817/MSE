@@ -711,6 +711,43 @@ def export_team_excel(team_id):
         print(f"❌ 조별 다운로드 오류: {e}")
         return redirect(url_for('admin'))
 
+@app.route('/view_data')
+def view_data():
+    """데이터베이스 내용을 웹페이지에서 직접 확인"""
+    if 'admin_logged_in' not in session:
+        return redirect(url_for('admin'))
+    
+    try:
+        # 모든 데이터 수집
+        teams = Team.query.all()
+        purchases = Purchase.query.all()
+        multi_purchases = MultiPurchase.query.all()
+        other_requests = OtherRequest.query.all()
+        
+        # 데이터를 텍스트로 변환
+        data_text = "=== 팀 정보 ===\n"
+        for team in teams:
+            data_text += f"팀: {team.name}, 조장: {team.leader_name or '미설정'}, 학과예산: {team.department_budget}, 학생예산: {team.student_budget}\n"
+        
+        data_text += "\n=== 구매내역 ===\n"
+        for purchase in purchases:
+            data_text += f"ID: {purchase.id}, 팀: {purchase.team.name}, 품목: {purchase.item_name}, 수량: {purchase.quantity}, 비용: {purchase.estimated_cost}, 상태: {'승인' if purchase.is_approved else '대기'}\n"
+        
+        data_text += "\n=== 다중품목 구매내역 ===\n"
+        for multi_purchase in multi_purchases:
+            data_text += f"ID: {multi_purchase.id}, 팀: {multi_purchase.team.name}, 상태: {'승인' if multi_purchase.is_approved else '대기'}\n"
+            for item in multi_purchase.items:
+                data_text += f"  - 품목: {item.item_name}, 수량: {item.quantity}, 단가: {item.unit_price}\n"
+        
+        data_text += "\n=== 기타 요청 ===\n"
+        for request in other_requests:
+            data_text += f"ID: {request.id}, 팀: {request.team.name}, 내용: {request.content}, 상태: {'승인' if request.is_approved else '대기'}\n"
+        
+        return f"<pre>{data_text}</pre>"
+        
+    except Exception as e:
+        return f"<pre>오류 발생: {e}</pre>"
+
 @app.route('/logout')
 def logout():
     session.pop('admin_logged_in', None)
