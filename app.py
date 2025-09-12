@@ -54,6 +54,8 @@ class Team(db.Model):
     leader_name = db.Column(db.String(100), nullable=True)
     department_budget = db.Column(db.Integer, nullable=False)  # 학과지원사업
     student_budget = db.Column(db.Integer, nullable=False)     # 학생지원사업
+    original_department_budget = db.Column(db.Integer, nullable=False, default=0)  # 원본 학과지원사업 예산
+    original_student_budget = db.Column(db.Integer, nullable=False, default=0)     # 원본 학생지원사업 예산
     
     def __repr__(self):
         return f'<Team {self.name}>'
@@ -233,16 +235,36 @@ def admin():
         return render_template('admin_login.html')
     
     # 관리자 로그인 후
-    if request.method == 'POST' and 'leader_update' in request.form:
-        team_name = request.form.get('leader_team_name')
-        leader_name = request.form.get('leader_name')
+    if request.method == 'POST':
+        if 'leader_update' in request.form:
+            team_name = request.form.get('leader_team_name')
+            leader_name = request.form.get('leader_name')
+            
+            team = Team.query.filter_by(name=team_name).first()
+            if team:
+                team.leader_name = leader_name
+                db.session.commit()
+                flash('조장 정보가 업데이트되었습니다.', 'success')
+                return redirect(url_for('admin'))
         
-        team = Team.query.filter_by(name=team_name).first()
-        if team:
-            team.leader_name = leader_name
-            db.session.commit()
-            flash('조장 정보가 업데이트되었습니다.', 'success')
-            return redirect(url_for('admin'))
+        elif 'budget_update' in request.form:
+            team_name = request.form.get('budget_team_name')
+            department_budget = request.form.get('department_budget')
+            student_budget = request.form.get('student_budget')
+            
+            if department_budget and student_budget:
+                team = Team.query.filter_by(name=team_name).first()
+                if team:
+                    team.department_budget = int(department_budget)
+                    team.student_budget = int(student_budget)
+                    # original 필드가 없을 수 있으므로 안전하게 처리
+                    if hasattr(team, 'original_department_budget'):
+                        team.original_department_budget = int(department_budget)
+                    if hasattr(team, 'original_student_budget'):
+                        team.original_student_budget = int(student_budget)
+                    db.session.commit()
+                    flash('예산 정보가 업데이트되었습니다.', 'success')
+                    return redirect(url_for('admin'))
     
     # 모든 조의 잔여금액 정보
     all_teams_info = []
@@ -663,6 +685,22 @@ def init_db():
             
             # 테이블만 생성 (기존 데이터는 보존)
             db.create_all()
+            
+            # 데이터베이스 마이그레이션 - 새로운 필드들 추가
+            try:
+                # 기존 조들에 original_department_budget, original_student_budget 필드 추가
+                teams = Team.query.all()
+                for team in teams:
+                    if not hasattr(team, 'original_department_budget') or team.original_department_budget == 0:
+                        team.original_department_budget = team.department_budget
+                        team.original_student_budget = team.student_budget
+                        print(f"🔄 조 예산 정보 마이그레이션: {team.name}")
+                
+                db.session.commit()
+                print("✅ 데이터베이스 마이그레이션이 완료되었습니다.")
+            except Exception as e:
+                print(f"⚠️  마이그레이션 중 오류 발생 (정상): {e}")
+                db.session.rollback()
             
             # 기존 데이터 확인
             existing_teams_count = Team.query.count()
