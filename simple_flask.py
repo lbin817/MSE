@@ -590,48 +590,48 @@ def export_excel():
     try:
         # Tab 구분 텍스트 파일 생성
         txt_content = ""
-    
-    # 헤더 작성
-    headers = ['ID', '조 번호', '조장', '품목명', '수량', '예상비용', '쇼핑몰', '예산유형', '상태', '요청일시', '견적서첨부']
-    txt_content += '\t'.join(headers) + '\n'
-    
-    # 일반 구매내역
-    purchases = Purchase.query.order_by(Purchase.created_at.desc()).all()
-    for purchase in purchases:
-        row = [
-            str(purchase.id),
-            purchase.team.name,
-            purchase.team.leader_name or '미설정',
-            purchase.item_name,
-            str(purchase.quantity),
-            str(purchase.estimated_cost),
-            purchase.store,
-            '학과지원사업' if getattr(purchase, 'budget_type', None) == 'department' else '학생지원사업' if getattr(purchase, 'budget_type', None) == 'student' else '미선택',
-            '승인됨' if purchase.is_approved else '대기중',
-            purchase.created_at.strftime('%Y-%m-%d %H:%M'),
-            '있음' if getattr(purchase, 'attachment_filename', None) else '없음'
-        ]
-        txt_content += '\t'.join(row) + '\n'
-    
-    # 다중 품목 구매내역
-    multi_purchases = MultiPurchase.query.order_by(MultiPurchase.created_at.desc()).all()
-    for multi_purchase in multi_purchases:
-        # 각 품목별로 행 생성
-        for item in multi_purchase.items:
+        
+        # 헤더 작성
+        headers = ['ID', '조 번호', '조장', '품목명', '수량', '예상비용', '쇼핑몰', '예산유형', '상태', '요청일시', '견적서첨부']
+        txt_content += '\t'.join(headers) + '\n'
+        
+        # 일반 구매내역
+        purchases = Purchase.query.order_by(Purchase.created_at.desc()).all()
+        for purchase in purchases:
             row = [
-                f"M{multi_purchase.id}-{item.id}",
-                multi_purchase.team.name,
-                multi_purchase.team.leader_name or '미설정',
-                item.item_name,
-                str(item.quantity),
-                str(item.unit_price * item.quantity),
-                multi_purchase.store,
-                '학과지원사업' if multi_purchase.budget_type == 'department' else '학생지원사업' if multi_purchase.budget_type == 'student' else '미선택',
-                '승인됨' if multi_purchase.is_approved else '대기중',
-                multi_purchase.created_at.strftime('%Y-%m-%d %H:%M'),
-                '있음' if getattr(multi_purchase, 'attachment_filename', None) else '없음'
+                str(purchase.id),
+                purchase.team.name,
+                purchase.team.leader_name or '미설정',
+                purchase.item_name,
+                str(purchase.quantity),
+                str(purchase.estimated_cost),
+                purchase.store,
+                '학과지원사업' if getattr(purchase, 'budget_type', None) == 'department' else '학생지원사업' if getattr(purchase, 'budget_type', None) == 'student' else '미선택',
+                '승인됨' if purchase.is_approved else '대기중',
+                purchase.created_at.strftime('%Y-%m-%d %H:%M'),
+                '있음' if getattr(purchase, 'attachment_filename', None) else '없음'
             ]
             txt_content += '\t'.join(row) + '\n'
+        
+        # 다중 품목 구매내역
+        multi_purchases = MultiPurchase.query.order_by(MultiPurchase.created_at.desc()).all()
+        for multi_purchase in multi_purchases:
+            # 각 품목별로 행 생성
+            for item in multi_purchase.items:
+                row = [
+                    f"M{multi_purchase.id}-{item.id}",
+                    multi_purchase.team.name,
+                    multi_purchase.team.leader_name or '미설정',
+                    item.item_name,
+                    str(item.quantity),
+                    str(item.unit_price * item.quantity),
+                    multi_purchase.store,
+                    '학과지원사업' if multi_purchase.budget_type == 'department' else '학생지원사업' if multi_purchase.budget_type == 'student' else '미선택',
+                    '승인됨' if multi_purchase.is_approved else '대기중',
+                    multi_purchase.created_at.strftime('%Y-%m-%d %H:%M'),
+                    '있음' if getattr(multi_purchase, 'attachment_filename', None) else '없음'
+                ]
+                txt_content += '\t'.join(row) + '\n'
     
         # 텍스트 파일로 응답
         response = make_response(txt_content.encode('utf-8'))
