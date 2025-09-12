@@ -9,6 +9,7 @@ from datetime import datetime
 import ipaddress
 import csv
 import io
+import codecs
 from config import ALLOWED_IPS, ADMIN_USERNAME, ADMIN_PASSWORD, HOST, PORT, DEBUG
 
 app = Flask(__name__)
@@ -514,20 +515,26 @@ def export_excel():
                 multi_purchase.created_at.strftime('%Y-%m-%d %H:%M')
             ])
     
-    # CSV 생성 (UTF-8 BOM 포함)
-    output = io.StringIO()
-    output.write('\ufeff')  # UTF-8 BOM
+    # CSV 생성 (UTF-8 BOM 포함) - codecs 사용
+    output = io.BytesIO()
+    
+    # UTF-8 BOM 추가
+    output.write(codecs.BOM_UTF8)
+    
+    # CSV 작성기 생성 (UTF-8 인코딩)
+    writer = csv.writer(io.TextIOWrapper(output, encoding='utf-8', newline=''))
     
     # 헤더 작성
     headers = ['ID', '조 번호', '조장', '품목명', '수량', '예상비용', '쇼핑몰', '예산유형', '상태', '요청일시']
-    output.write(','.join(f'"{h}"' for h in headers) + '\n')
+    writer.writerow(headers)
     
     # 데이터 작성
     for row in data:
-        output.write(','.join(f'"{str(cell)}"' for cell in row) + '\n')
+        writer.writerow(row)
     
     # 응답 생성
-    response = make_response(output.getvalue().encode('utf-8-sig'))
+    output.seek(0)
+    response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv; charset=utf-8-sig'
     response.headers['Content-Disposition'] = f'attachment; filename=purchase_history_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
     
@@ -577,20 +584,26 @@ def export_team_excel(team_id):
                 multi_purchase.created_at.strftime('%Y-%m-%d %H:%M')
             ])
     
-    # CSV 생성 (UTF-8 BOM 포함)
-    output = io.StringIO()
-    output.write('\ufeff')  # UTF-8 BOM
+    # CSV 생성 (UTF-8 BOM 포함) - codecs 사용
+    output = io.BytesIO()
+    
+    # UTF-8 BOM 추가
+    output.write(codecs.BOM_UTF8)
+    
+    # CSV 작성기 생성 (UTF-8 인코딩)
+    writer = csv.writer(io.TextIOWrapper(output, encoding='utf-8', newline=''))
     
     # 헤더 작성
     headers = ['ID', '조 번호', '조장', '품목명', '수량', '예상비용', '쇼핑몰', '예산유형', '상태', '요청일시']
-    output.write(','.join(f'"{h}"' for h in headers) + '\n')
+    writer.writerow(headers)
     
     # 데이터 작성
     for row in data:
-        output.write(','.join(f'"{str(cell)}"' for cell in row) + '\n')
+        writer.writerow(row)
     
     # 응답 생성
-    response = make_response(output.getvalue().encode('utf-8-sig'))
+    output.seek(0)
+    response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv; charset=utf-8-sig'
     response.headers['Content-Disposition'] = f'attachment; filename={team.name}_purchase_history_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
     
