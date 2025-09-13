@@ -70,6 +70,48 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def get_teams_ordered():
+    """조 순서를 올바르게 정렬하여 반환 (월요일 1조~4조, 화요일 1조~7조)"""
+    teams = Team.query.all()
+    
+    # 조 이름을 기준으로 정렬
+    def team_sort_key(team):
+        name = team.name
+        if '월요일' in name:
+            # 월요일 1조, 2조, 3조, 4조 순서
+            if '1조' in name:
+                return 1
+            elif '2조' in name:
+                return 2
+            elif '3조' in name:
+                return 3
+            elif '4조' in name:
+                return 4
+            else:
+                return 5  # 기타 월요일 조
+        elif '화요일' in name:
+            # 화요일 1조, 2조, 3조, 4조, 5조, 6조, 7조 순서
+            if '1조' in name:
+                return 6
+            elif '2조' in name:
+                return 7
+            elif '3조' in name:
+                return 8
+            elif '4조' in name:
+                return 9
+            elif '5조' in name:
+                return 10
+            elif '6조' in name:
+                return 11
+            elif '7조' in name:
+                return 12
+            else:
+                return 13  # 기타 화요일 조
+        else:
+            return 99  # 기타 조들은 맨 뒤로
+    
+    return sorted(teams, key=team_sort_key)
+
 # GitHub API 함수들
 def upload_to_github(filename, content):
     """GitHub에 JSON 파일 업로드"""
@@ -555,7 +597,7 @@ def upload():
             else:
                 flash('조장 이름이 일치하지 않습니다.', 'error')
     
-    teams = Team.query.all()
+    teams = get_teams_ordered()
     return render_template('upload.html', teams=teams)
 
 @app.route('/check_balance', methods=['GET', 'POST'])
@@ -591,7 +633,7 @@ def check_balance():
         else:
             flash('조장 이름이 일치하지 않습니다.', 'error')
     
-    teams = Team.query.all()
+    teams = get_teams_ordered()
     return render_template('check_balance.html', teams=teams, balance_info=balance_info)
 
 @app.route('/admin', methods=['GET', 'POST'])
@@ -664,7 +706,7 @@ def admin():
             flash('예산은 숫자로 입력해주세요.', 'error')
             return redirect(url_for('admin'))
     
-    teams = Team.query.all()
+    teams = get_teams_ordered()
     all_teams_info = []
     for team in teams:
         approved_purchases = Purchase.query.filter_by(team_id=team.id, is_approved=True).all()
