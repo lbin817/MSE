@@ -1283,6 +1283,130 @@ def reset_database():
     
     return redirect(url_for('admin'))
 
+@app.route('/export_text')
+def export_text():
+    """전체 데이터를 텍스트 형태로 다운로드"""
+    if 'admin_logged_in' not in session:
+        return redirect(url_for('admin'))
+    
+    try:
+        # 모든 데이터 수집
+        teams = Team.query.all()
+        purchases = Purchase.query.all()
+        multi_purchases = MultiPurchase.query.all()
+        other_requests = OtherRequest.query.all()
+        
+        # 텍스트 내용 생성
+        text_content = ""
+        text_content += "=" * 80 + "\n"
+        text_content += "MSE 예산 관리 시스템 - 전체 데이터 내보내기\n"
+        text_content += f"생성일시: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        text_content += "=" * 80 + "\n\n"
+        
+        # 팀 정보
+        text_content += "📋 팀 정보\n"
+        text_content += "-" * 50 + "\n"
+        for team in teams:
+            text_content += f"조 번호: {team.name}\n"
+            text_content += f"조장: {team.leader_name or '미설정'}\n"
+            text_content += f"학과지원사업 예산: {team.department_budget:,}원\n"
+            text_content += f"학생지원사업 예산: {team.student_budget:,}원\n"
+            text_content += f"원래 학과지원사업 예산: {team.original_department_budget:,}원\n"
+            text_content += f"원래 학생지원사업 예산: {team.original_student_budget:,}원\n"
+            text_content += "-" * 30 + "\n"
+        text_content += "\n"
+        
+        # 구매내역
+        text_content += "🛒 구매내역\n"
+        text_content += "-" * 50 + "\n"
+        for purchase in purchases:
+            text_content += f"ID: {purchase.id}\n"
+            text_content += f"조 번호: {purchase.team.name}\n"
+            text_content += f"품목명: {purchase.item_name}\n"
+            text_content += f"수량: {purchase.quantity}개\n"
+            text_content += f"예상비용: {purchase.estimated_cost:,}원\n"
+            text_content += f"쇼핑몰: {purchase.store}\n"
+            text_content += f"예산유형: {'학과지원사업' if purchase.budget_type == 'department' else '학생지원사업' if purchase.budget_type == 'student' else '미선택'}\n"
+            text_content += f"상태: {'승인됨' if purchase.is_approved else '대기중'}\n"
+            text_content += f"요청일시: {purchase.created_at.strftime('%Y-%m-%d %H:%M:%S')}\n"
+            if purchase.attachment_filename:
+                text_content += f"견적서: {purchase.attachment_filename}\n"
+            text_content += "-" * 30 + "\n"
+        text_content += "\n"
+        
+        # 다중 품목 구매내역
+        text_content += "📦 다중 품목 구매내역\n"
+        text_content += "-" * 50 + "\n"
+        for multi_purchase in multi_purchases:
+            text_content += f"ID: M{multi_purchase.id}\n"
+            text_content += f"조 번호: {multi_purchase.team.name}\n"
+            text_content += f"쇼핑몰: {multi_purchase.store}\n"
+            text_content += f"총 금액: {multi_purchase.total_cost:,}원\n"
+            text_content += f"예산유형: {'학과지원사업' if multi_purchase.budget_type == 'department' else '학생지원사업' if multi_purchase.budget_type == 'student' else '미선택'}\n"
+            text_content += f"상태: {'승인됨' if multi_purchase.is_approved else '대기중'}\n"
+            text_content += f"요청일시: {multi_purchase.created_at.strftime('%Y-%m-%d %H:%M:%S')}\n"
+            if multi_purchase.attachment_filename:
+                text_content += f"견적서: {multi_purchase.attachment_filename}\n"
+            text_content += "품목 상세:\n"
+            for item in multi_purchase.items:
+                text_content += f"  - {item.item_name}: {item.quantity}개 × {item.unit_price:,}원 = {item.quantity * item.unit_price:,}원\n"
+            text_content += "-" * 30 + "\n"
+        text_content += "\n"
+        
+        # 기타 요청
+        text_content += "❓ 기타 구매 요청\n"
+        text_content += "-" * 50 + "\n"
+        for other_request in other_requests:
+            text_content += f"ID: {other_request.id}\n"
+            text_content += f"조 번호: {other_request.team.name}\n"
+            text_content += f"내용: {other_request.content}\n"
+            text_content += f"상태: {'승인됨' if other_request.is_approved else '대기중'}\n"
+            text_content += f"요청일시: {other_request.created_at.strftime('%Y-%m-%d %H:%M:%S')}\n"
+            text_content += "-" * 30 + "\n"
+        text_content += "\n"
+        
+        # 통계 정보
+        text_content += "📊 통계 정보\n"
+        text_content += "-" * 50 + "\n"
+        total_teams = len(teams)
+        total_purchases = len(purchases)
+        total_multi_purchases = len(multi_purchases)
+        total_other_requests = len(other_requests)
+        approved_purchases = len([p for p in purchases if p.is_approved])
+        approved_multi_purchases = len([mp for mp in multi_purchases if mp.is_approved])
+        
+        text_content += f"총 팀 수: {total_teams}개\n"
+        text_content += f"총 구매내역: {total_purchases}건 (승인: {approved_purchases}건)\n"
+        text_content += f"총 다중구매내역: {total_multi_purchases}건 (승인: {approved_multi_purchases}건)\n"
+        text_content += f"총 기타요청: {total_other_requests}건\n"
+        
+        # 전체 예산 통계
+        total_budget = sum(team.original_department_budget + team.original_student_budget for team in teams)
+        total_spent = sum(p.estimated_cost for p in purchases if p.is_approved)
+        total_spent += sum(mp.total_cost for mp in multi_purchases if mp.is_approved)
+        total_remaining = total_budget - total_spent
+        
+        text_content += f"전체 예산: {total_budget:,}원\n"
+        text_content += f"사용된 예산: {total_spent:,}원\n"
+        text_content += f"잔여 예산: {total_remaining:,}원\n"
+        text_content += f"사용률: {(total_spent/total_budget*100):.1f}%\n"
+        
+        text_content += "\n" + "=" * 80 + "\n"
+        text_content += "데이터 내보내기 완료\n"
+        text_content += "=" * 80 + "\n"
+        
+        # 텍스트 파일로 응답
+        response = make_response(text_content.encode('utf-8'))
+        response.headers['Content-Type'] = 'text/plain; charset=utf-8'
+        response.headers['Content-Disposition'] = f'attachment; filename=MSE_데이터_내보내기_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt'
+        
+        return response
+        
+    except Exception as e:
+        flash('데이터 내보내기 중 오류가 발생했습니다.', 'error')
+        print(f"❌ 텍스트 내보내기 오류: {e}")
+        return redirect(url_for('admin'))
+
 if __name__ == '__main__':
     # 테이블만 생성(데이터 보존). 필요할 때만 복원/시드
     with app.app_context():

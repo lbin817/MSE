@@ -215,37 +215,24 @@
     </div>
 </div>
 
-<!-- 엑셀 다운로드 버튼 -->
+<!-- 텍스트 데이터 다운로드 버튼 -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="card">
-            <div class="card-header bg-success text-white">
+            <div class="card-header bg-info text-white">
                 <h5 class="mb-0">
-                    <i class="fas fa-file-excel me-2"></i>엑셀 다운로드
+                    <i class="fas fa-file-alt me-2"></i>데이터 내보내기
                 </h5>
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-6">
-                        <a href="{{ url_for('export_excel') }}" class="btn btn-success btn-lg w-100">
-                            <i class="fas fa-download me-2"></i>전체 구매내역 다운로드
+                    <div class="col-md-12">
+                        <a href="{{ url_for('export_text') }}" class="btn btn-info btn-lg w-100">
+                            <i class="fas fa-download me-2"></i>전체 데이터 텍스트 다운로드
                         </a>
-                        <small class="text-muted d-block mt-2">모든 조의 구매내역을 CSV 파일로 다운로드합니다.</small>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="dropdown">
-                            <button class="btn btn-outline-success btn-lg w-100 dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-download me-2"></i>조별 구매내역 다운로드
-                            </button>
-                            <ul class="dropdown-menu w-100">
-                                {% for team in teams %}
-                                <li><a class="dropdown-item" href="{{ url_for('export_team_excel', team_id=team.id) }}">
-                                    {{ team.name }} ({{ team.leader_name or '미설정' }})
-                                </a></li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                        <small class="text-muted d-block mt-2">특정 조의 구매내역만 다운로드합니다.</small>
+                        <small class="text-muted d-block mt-2">
+                            모든 데이터(팀 정보, 구매내역, 다중구매내역, 기타요청, 통계)를 텍스트 파일로 다운로드합니다.
+                        </small>
                     </div>
                 </div>
             </div>
