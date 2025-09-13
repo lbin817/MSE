@@ -690,6 +690,11 @@ def admin():
     all_multi_purchases = MultiPurchase.query.order_by(MultiPurchase.created_at.desc()).all()
     other_requests = OtherRequest.query.all()
     
+    # 전체 예산 현황 계산
+    total_budget = sum(team.original_department_budget + team.original_student_budget for team in teams)
+    total_spent = sum(team_info['total_spent'] for team_info in all_teams_info)
+    total_remaining = total_budget - total_spent
+    
     return render_template('admin.html', 
                          teams=teams,
                          all_teams_info=all_teams_info,
@@ -697,7 +702,10 @@ def admin():
                          all_purchases=all_purchases,
                          pending_multi_purchases=pending_multi_purchases,
                          all_multi_purchases=all_multi_purchases,
-                         other_requests=other_requests)
+                         other_requests=other_requests,
+                         total_budget=total_budget,
+                         total_spent=total_spent,
+                         total_remaining=total_remaining)
 
 @app.route('/approve_purchase/<int:purchase_id>', methods=['POST'])
 def approve_purchase(purchase_id):
