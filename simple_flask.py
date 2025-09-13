@@ -1134,23 +1134,24 @@ def restore_from_json():
         if purchases_content:
             purchases_data = json.loads(purchases_content)
             
+            # 기존 구매내역 모두 삭제 (새 데이터베이스이므로)
+            Purchase.query.delete()
+            
             for purchase_data in purchases_data.get('purchases', []):
-                existing_purchase = Purchase.query.get(purchase_data['id'])
-                if not existing_purchase:
-                    purchase = Purchase(
-                        id=purchase_data['id'],
-                        team_id=purchase_data['team_id'],
-                        item_name=purchase_data['item_name'],
-                        quantity=purchase_data['quantity'],
-                        estimated_cost=purchase_data['total_amount'],
-                        link=purchase_data.get('link', ''),
-                        store=purchase_data['store'],
-                        is_approved=purchase_data['is_approved'],
-                        budget_type=purchase_data.get('budget_type', 'department'),
-                        attachment_filename=purchase_data.get('attachment_filename'),
-                        request_date=datetime.strptime(purchase_data['request_date'], '%Y-%m-%d %H:%M:%S')
-                    )
-                    db.session.add(purchase)
+                purchase = Purchase(
+                    id=purchase_data['id'],
+                    team_id=purchase_data['team_id'],
+                    item_name=purchase_data['item_name'],
+                    quantity=purchase_data['quantity'],
+                    estimated_cost=purchase_data['total_amount'],
+                    link=purchase_data.get('link', ''),
+                    store=purchase_data['store'],
+                    is_approved=purchase_data['is_approved'],
+                    budget_type=purchase_data.get('budget_type', 'department'),
+                    attachment_filename=purchase_data.get('attachment_filename'),
+                    request_date=datetime.strptime(purchase_data['request_date'], '%Y-%m-%d %H:%M:%S')
+                )
+                db.session.add(purchase)
             
             db.session.commit()
             print(f"✅ {len(purchases_data.get('purchases', []))}개 구매내역 복원 완료!")
