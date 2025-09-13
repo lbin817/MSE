@@ -1403,6 +1403,108 @@ def export_text():
         print(f"❌ 텍스트 내보내기 오류: {e}")
         return redirect(url_for('admin'))
 
+@app.route('/export_excel_text')
+def export_excel_text():
+    """엑셀 데이터를 텍스트 형태로 새 창에 표시"""
+    if 'admin_logged_in' not in session:
+        return redirect(url_for('admin'))
+    
+    try:
+        # 데이터 수집 (엑셀 내보내기와 동일한 형식)
+        data = []
+        
+        # 일반 구매내역
+        purchases = Purchase.query.order_by(Purchase.created_at.desc()).all()
+        for purchase in purchases:
+            data.append({
+                'ID': purchase.id,
+                '조 번호': purchase.team.name,
+                '조장': purchase.team.leader_name or '미설정',
+                '품목명': purchase.item_name,
+                '수량': purchase.quantity,
+                '예상비용': purchase.estimated_cost,
+                '쇼핑몰': purchase.store,
+                '예산유형': '학과지원사업' if getattr(purchase, 'budget_type', None) == 'department' else '학생지원사업' if getattr(purchase, 'budget_type', None) == 'student' else '미선택',
+                '상태': '승인됨' if purchase.is_approved else '대기중',
+                '요청일시': purchase.created_at.strftime('%Y-%m-%d %H:%M')
+            })
+        
+        # 다중 품목 구매내역
+        multi_purchases = MultiPurchase.query.order_by(MultiPurchase.created_at.desc()).all()
+        for multi_purchase in multi_purchases:
+            for item in multi_purchase.items:
+                data.append({
+                    'ID': f"M{multi_purchase.id}-{item.id}",
+                    '조 번호': multi_purchase.team.name,
+                    '조장': multi_purchase.team.leader_name or '미설정',
+                    '품목명': item.item_name,
+                    '수량': item.quantity,
+                    '예상비용': item.unit_price * item.quantity,
+                    '쇼핑몰': multi_purchase.store,
+                    '예산유형': '학과지원사업' if multi_purchase.budget_type == 'department' else '학생지원사업' if multi_purchase.budget_type == 'student' else '미선택',
+                    '상태': '승인됨' if multi_purchase.is_approved else '대기중',
+                    '요청일시': multi_purchase.created_at.strftime('%Y-%m-%d %H:%M')
+                })
+        
+        # 텍스트 내용 생성 (엑셀 형식)
+        text_content = ""
+        text_content += "=" * 100 + "\n"
+        text_content += "MSE 예산 관리 시스템 - 구매내역 데이터 (엑셀 형식)\n"
+        text_content += f"생성일시: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        text_content += "=" * 100 + "\n\n"
+        
+        if data:
+            # 헤더 작성
+            headers = list(data[0].keys())
+            text_content += "구매내역 데이터\n"
+            text_content += "-" * 100 + "\n"
+            
+            # 헤더 행
+            header_row = " | ".join(f"{header:^12}" for header in headers)
+            text_content += header_row + "\n"
+            text_content += "-" * len(header_row) + "\n"
+            
+            # 데이터 행들
+            for row in data:
+                data_row = " | ".join(f"{str(row[header]):^12}" for header in headers)
+                text_content += data_row + "\n"
+            
+            text_content += "\n"
+            
+            # 통계 정보
+            text_content += "통계 정보\n"
+            text_content += "-" * 50 + "\n"
+            total_records = len(data)
+            approved_records = len([row for row in data if row['상태'] == '승인됨'])
+            pending_records = total_records - approved_records
+            
+            text_content += f"총 구매내역: {total_records}건\n"
+            text_content += f"승인된 내역: {approved_records}건\n"
+            text_content += f"대기중인 내역: {pending_records}건\n"
+            
+            # 예산별 통계
+            dept_total = sum(row['예상비용'] for row in data if row['예산유형'] == '학과지원사업')
+            student_total = sum(row['예상비용'] for row in data if row['예산유형'] == '학생지원사업')
+            
+            text_content += f"학과지원사업 총액: {dept_total:,}원\n"
+            text_content += f"학생지원사업 총액: {student_total:,}원\n"
+            text_content += f"전체 총액: {dept_total + student_total:,}원\n"
+            
+        else:
+            text_content += "구매내역이 없습니다.\n"
+        
+        text_content += "\n" + "=" * 100 + "\n"
+        text_content += "데이터 내보내기 완료\n"
+        text_content += "=" * 100 + "\n"
+        
+        # HTML 템플릿으로 렌더링하여 새 창에 표시
+        return render_template('export_text.html', text_content=text_content)
+        
+    except Exception as e:
+        flash('데이터 내보내기 중 오류가 발생했습니다.', 'error')
+        print(f"❌ 엑셀 텍스트 내보내기 오류: {e}")
+        return redirect(url_for('admin'))
+
 if __name__ == '__main__':
     # 테이블만 생성(데이터 보존). 필요할 때만 복원/시드
     with app.app_context():
