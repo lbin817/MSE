@@ -1446,56 +1446,20 @@ def export_excel_text():
                     '요청일시': multi_purchase.created_at.strftime('%Y-%m-%d %H:%M')
                 })
         
-        # 텍스트 내용 생성 (엑셀 형식)
+        # 텍스트 내용 생성 (엑셀 복사 붙여넣기용)
         text_content = ""
-        text_content += "=" * 100 + "\n"
-        text_content += "MSE 예산 관리 시스템 - 구매내역 데이터 (엑셀 형식)\n"
-        text_content += f"생성일시: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-        text_content += "=" * 100 + "\n\n"
         
         if data:
-            # 헤더 작성
+            # 헤더 작성 (탭으로 구분)
             headers = list(data[0].keys())
-            text_content += "구매내역 데이터\n"
-            text_content += "-" * 100 + "\n"
+            text_content += '\t'.join(headers) + '\n'
             
-            # 헤더 행
-            header_row = " | ".join(f"{header:^12}" for header in headers)
-            text_content += header_row + "\n"
-            text_content += "-" * len(header_row) + "\n"
-            
-            # 데이터 행들
+            # 데이터 행들 (탭으로 구분)
             for row in data:
-                data_row = " | ".join(f"{str(row[header]):^12}" for header in headers)
-                text_content += data_row + "\n"
-            
-            text_content += "\n"
-            
-            # 통계 정보
-            text_content += "통계 정보\n"
-            text_content += "-" * 50 + "\n"
-            total_records = len(data)
-            approved_records = len([row for row in data if row['상태'] == '승인됨'])
-            pending_records = total_records - approved_records
-            
-            text_content += f"총 구매내역: {total_records}건\n"
-            text_content += f"승인된 내역: {approved_records}건\n"
-            text_content += f"대기중인 내역: {pending_records}건\n"
-            
-            # 예산별 통계
-            dept_total = sum(row['예상비용'] for row in data if row['예산유형'] == '학과지원사업')
-            student_total = sum(row['예상비용'] for row in data if row['예산유형'] == '학생지원사업')
-            
-            text_content += f"학과지원사업 총액: {dept_total:,}원\n"
-            text_content += f"학생지원사업 총액: {student_total:,}원\n"
-            text_content += f"전체 총액: {dept_total + student_total:,}원\n"
+                text_content += '\t'.join(str(row[header]) for header in headers) + '\n'
             
         else:
             text_content += "구매내역이 없습니다.\n"
-        
-        text_content += "\n" + "=" * 100 + "\n"
-        text_content += "데이터 내보내기 완료\n"
-        text_content += "=" * 100 + "\n"
         
         # HTML 템플릿으로 렌더링하여 새 창에 표시
         return render_template('export_text.html', text_content=text_content)
