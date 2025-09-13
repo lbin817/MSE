@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MSE 데이터 내보내기</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            background-color: #f8f9fa;
+        }
+        .text-content {
+            background-color: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            white-space: pre-wrap;
+            font-size: 14px;
+            line-height: 1.6;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .btn-copy {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        .btn-print {
+            position: fixed;
+            top: 20px;
+            right: 120px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- 헤더 -->
+        <div class="header text-center">
+            <h1><i class="fas fa-database me-2"></i>MSE 예산 관리 시스템</h1>
+            <h4>전체 데이터 내보내기</h4>
+            <p class="mb-0">생성일시: {{ moment().format('YYYY-MM-DD HH:mm:ss') }}</p>
+        </div>
+
+        <!-- 복사 및 인쇄 버튼 -->
+        <button class="btn btn-success btn-copy" onclick="copyToClipboard()">
+            <i class="fas fa-copy me-1"></i>복사
+        </button>
+        <button class="btn btn-primary btn-print" onclick="window.print()">
+            <i class="fas fa-print me-1"></i>인쇄
+        </button>
+
+        <!-- 텍스트 내용 -->
+        <div class="text-content" id="textContent">{{ text_content }}</div>
+
+        <!-- 푸터 -->
+        <div class="text-center mt-4 mb-4">
+            <small class="text-muted">
+                <i class="fas fa-info-circle me-1"></i>
+                이 데이터는 MSE 예산 관리 시스템에서 자동으로 생성되었습니다.
+            </small>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function copyToClipboard() {
+            const textContent = document.getElementById('textContent').textContent;
+            navigator.clipboard.writeText(textContent).then(function() {
+                // 성공 알림
+                const btn = document.querySelector('.btn-copy');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check me-1"></i>복사됨!';
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-success');
+                
+                setTimeout(function() {
+                    btn.innerHTML = originalText;
+                }, 2000);
+            }).catch(function(err) {
+                console.error('복사 실패: ', err);
+                alert('복사에 실패했습니다. 텍스트를 직접 선택하여 복사해주세요.');
+            });
+        }
+
+        // 페이지 로드 시 자동으로 텍스트 선택
+        window.onload = function() {
+            const textContent = document.getElementById('textContent');
+            textContent.focus();
+        }
+    </script>
+</body>
+</html>

@@ -44,7 +44,7 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True}
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'xls', 'xlsx'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB 제한 (견적서용)
+app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2MB 제한 (견적서용)
 
 # 업로드 폴더 생성
 if not os.path.exists(UPLOAD_FOLDER):
@@ -1285,7 +1285,7 @@ def reset_database():
 
 @app.route('/export_text')
 def export_text():
-    """전체 데이터를 텍스트 형태로 다운로드"""
+    """전체 데이터를 텍스트 형태로 새 창에 표시"""
     if 'admin_logged_in' not in session:
         return redirect(url_for('admin'))
     
@@ -1395,12 +1395,8 @@ def export_text():
         text_content += "데이터 내보내기 완료\n"
         text_content += "=" * 80 + "\n"
         
-        # 텍스트 파일로 응답
-        response = make_response(text_content.encode('utf-8'))
-        response.headers['Content-Type'] = 'text/plain; charset=utf-8'
-        response.headers['Content-Disposition'] = f'attachment; filename=MSE_데이터_내보내기_{datetime.now().strftime("%Y%m%d_%H%M%S")}.txt'
-        
-        return response
+        # HTML 템플릿으로 렌더링하여 새 창에 표시
+        return render_template('export_text.html', text_content=text_content)
         
     except Exception as e:
         flash('데이터 내보내기 중 오류가 발생했습니다.', 'error')
