@@ -1418,33 +1418,35 @@ def export_excel_text():
         for purchase in purchases:
             data.append({
                 'ID': purchase.id,
-                '조 번호': purchase.team.name,
-                '조장': purchase.team.leader_name or '미설정',
+                '조 번호': purchase.team.name if purchase.team else '미설정',
+                '조장': purchase.team.leader_name if purchase.team and purchase.team.leader_name else '미설정',
                 '품목명': purchase.item_name,
                 '수량': purchase.quantity,
                 '예상비용': purchase.estimated_cost,
                 '쇼핑몰': purchase.store,
                 '예산유형': '학과지원사업' if getattr(purchase, 'budget_type', None) == 'department' else '학생지원사업' if getattr(purchase, 'budget_type', None) == 'student' else '미선택',
-                '상태': '승인됨' if purchase.is_approved else '대기중',
-                '요청일시': purchase.created_at.strftime('%Y-%m-%d %H:%M')
+                '상태': '승인됨' if getattr(purchase, 'is_approved', False) else '대기중',
+                '요청일시': purchase.created_at.strftime('%Y-%m-%d %H:%M') if purchase.created_at else '미설정'
             })
         
         # 다중 품목 구매내역
         multi_purchases = MultiPurchase.query.order_by(MultiPurchase.created_at.desc()).all()
         for multi_purchase in multi_purchases:
-            for item in multi_purchase.items:
-                data.append({
-                    'ID': f"M{multi_purchase.id}-{item.id}",
-                    '조 번호': multi_purchase.team.name,
-                    '조장': multi_purchase.team.leader_name or '미설정',
-                    '품목명': item.item_name,
-                    '수량': item.quantity,
-                    '예상비용': item.unit_price * item.quantity,
-                    '쇼핑몰': multi_purchase.store,
-                    '예산유형': '학과지원사업' if multi_purchase.budget_type == 'department' else '학생지원사업' if multi_purchase.budget_type == 'student' else '미선택',
-                    '상태': '승인됨' if multi_purchase.is_approved else '대기중',
-                    '요청일시': multi_purchase.created_at.strftime('%Y-%m-%d %H:%M')
-                })
+            # items 관계가 있는지 확인
+            if hasattr(multi_purchase, 'items') and multi_purchase.items:
+                for item in multi_purchase.items:
+                    data.append({
+                        'ID': f"M{multi_purchase.id}-{item.id}",
+                        '조 번호': multi_purchase.team.name if multi_purchase.team else '미설정',
+                        '조장': multi_purchase.team.leader_name if multi_purchase.team and multi_purchase.team.leader_name else '미설정',
+                        '품목명': item.item_name,
+                        '수량': item.quantity,
+                        '예상비용': item.unit_price * item.quantity,
+                        '쇼핑몰': multi_purchase.store,
+                        '예산유형': '학과지원사업' if getattr(multi_purchase, 'budget_type', None) == 'department' else '학생지원사업' if getattr(multi_purchase, 'budget_type', None) == 'student' else '미선택',
+                        '상태': '승인됨' if getattr(multi_purchase, 'is_approved', False) else '대기중',
+                        '요청일시': multi_purchase.created_at.strftime('%Y-%m-%d %H:%M') if multi_purchase.created_at else '미설정'
+                    })
         
         # 텍스트 내용 생성 (엑셀 복사 붙여넣기용)
         text_content = ""
@@ -1465,8 +1467,11 @@ def export_excel_text():
         return render_template('export_text.html', text_content=text_content)
         
     except Exception as e:
-        flash('데이터 내보내기 중 오류가 발생했습니다.', 'error')
+        import traceback
+        error_details = traceback.format_exc()
         print(f"❌ 엑셀 텍스트 내보내기 오류: {e}")
+        print(f"❌ 상세 오류: {error_details}")
+        flash(f'데이터 내보내기 중 오류가 발생했습니다: {str(e)}', 'error')
         return redirect(url_for('admin'))
 
 if __name__ == '__main__':
