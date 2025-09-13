@@ -4,14 +4,11 @@ services:
     env: python
     plan: free
     buildCommand: pip install -r requirements.txt
-                startCommand: python simple_flask_json.py
+    startCommand: gunicorn simple_flask:app
     envVars:
       - key: ADMIN_USERNAME
         value: MSE3105
       - key: ADMIN_PASSWORD
         value: KHU
       - key: SECRET_KEY
-        value: your-secret-key-change-this-in-production
-
-
-
+        value: change-me-in-production

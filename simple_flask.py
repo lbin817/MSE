@@ -19,12 +19,22 @@ from config import ALLOWED_IPS, ADMIN_USERNAME, ADMIN_PASSWORD, HOST, PORT, DEBU
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 
-# 데이터베이스 설정 - 모든 환경에서 SQLite 사용
-db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'budget_management.db')
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
-print(f"💾 SQLite 데이터베이스 사용: {db_path}")
+# 데이터베이스 설정 - DATABASE_URL(예: Render Postgres)이 있으면 우선 사용, 없으면 로컬 SQLite
+db_url = os.environ.get('DATABASE_URL')
+if db_url:
+    # Render는 간혹 'postgres://' 접두어를 제공합니다 → SQLAlchemy 호환 형태로 변경
+    if db_url.startswith('postgres://'):
+        db_url = db_url.replace('postgres://', 'postgresql+psycopg2://', 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+    print("🌐 PostgreSQL 데이터베이스 사용")
+else:
+    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'budget_management.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+    print(f"💾 SQLite 데이터베이스 사용: {db_path}")
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# 연결 유지를 위해 pre_ping 설정(클라우드 DB에서 유용)
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True}
 
 # 파일 업로드 설정
 UPLOAD_FOLDER = 'uploads'
@@ -1262,8 +1272,18 @@ def reset_database():
     return redirect(url_for('admin'))
 
 if __name__ == '__main__':
-    # 데이터베이스 초기화 (기존 데이터 보존)
-    init_db()
+    # 테이블만 생성(데이터 보존). 필요할 때만 복원/시드
+    with app.app_context():
+        db.create_all()
+        restore_flag = os.environ.get('RESTORE_ON_BOOT', '0').lower() in ('1', 'true', 'yes')
+        if restore_flag:
+            # 사용자가 명시적으로 요청한 경우에만 GitHub 복원 로직 수행
+            init_db()
+        else:
+            # 팀 데이터가 전혀 없을 때 최초 1회 초기 시드
+            if Team.query.count() == 0:
+                init_db()
+
     print("=" * 60)
     print("🎓 예산 관리 시스템 (Flask)이 시작되었습니다!")
     print("=" * 60)
@@ -1276,9 +1296,8 @@ if __name__ == '__main__':
     print("   - 관리자 모드 (MSE3105 / KHU)")
     print("   - 데이터베이스 보기 (다운로드 기능 제거됨)")
     print("=" * 60)
-    
+
     # Render 배포를 위한 포트 설정
-    import os
     port = int(os.environ.get('PORT', PORT))
     # 운영 환경에서는 디버그 모드 비활성화
     debug_mode = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
