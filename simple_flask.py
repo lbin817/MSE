@@ -24,7 +24,7 @@ db_url = os.environ.get('DATABASE_URL')
 if db_url:
     # Render는 간혹 'postgres://' 접두어를 제공합니다 → SQLAlchemy 호환 형태로 변경
     if db_url.startswith('postgres://'):
-        db_url = db_url.replace('postgres://', 'postgresql+psycopg2://', 1)
+        db_url = db_url.replace('postgres://', 'postgresql+psycopg://', 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = db_url
     print("🌐 PostgreSQL 데이터베이스 사용")
 else:
