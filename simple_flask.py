@@ -1464,7 +1464,8 @@ def export_excel_text():
             text_content += "구매내역이 없습니다.\n"
         
         # HTML 템플릿으로 렌더링하여 새 창에 표시
-        return render_template('export_text.html', text_content=text_content)
+        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        return render_template('export_text.html', text_content=text_content, current_time=current_time)
         
     except Exception as e:
         import traceback
