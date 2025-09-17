@@ -1,15 +1,6 @@
 {
   "teams": [
     {
-      "id": 5,
-      "name": "화요일 1조",
-      "leader_name": "",
-      "department_budget": 600000,
-      "student_budget": 500000,
-      "original_department_budget": 600000,
-      "original_student_budget": 500000
-    },
-    {
       "id": 7,
       "name": "화요일 3조",
       "leader_name": "",
@@ -94,6 +85,15 @@
       "id": 9,
       "name": "화요일 5조",
       "leader_name": "김필규",
+      "department_budget": 600000,
+      "student_budget": 500000,
+      "original_department_budget": 600000,
+      "original_student_budget": 500000
+    },
+    {
+      "id": 5,
+      "name": "화요일 1조",
+      "leader_name": "구기현",
       "department_budget": 600000,
       "student_budget": 500000,
       "original_department_budget": 600000,
