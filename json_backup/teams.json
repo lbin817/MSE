@@ -10,15 +10,6 @@
       "original_student_budget": 500000
     },
     {
-      "id": 10,
-      "name": "화요일 6조",
-      "leader_name": "",
-      "department_budget": 700000,
-      "student_budget": 500000,
-      "original_department_budget": 700000,
-      "original_student_budget": 500000
-    },
-    {
       "id": 3,
       "name": "월요일 3조",
       "leader_name": "배재현",
@@ -97,6 +88,15 @@
       "department_budget": 600000,
       "student_budget": 500000,
       "original_department_budget": 600000,
+      "original_student_budget": 500000
+    },
+    {
+      "id": 10,
+      "name": "화요일 6조",
+      "leader_name": "유지상",
+      "department_budget": 700000,
+      "student_budget": 500000,
+      "original_department_budget": 700000,
       "original_student_budget": 500000
     }
   ]
